@@ -1,0 +1,82 @@
+<UserControl x:Class="SuperDucker.App.ShopPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{DynamicResource BgDarkBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ Header ═══ -->
+        <Border Grid.Row="0" Background="{DynamicResource BgMediumBrush}" Padding="18,10">
+            <DockPanel>
+                <Button DockPanel.Dock="Left" Click="Back_Click" Cursor="Hand"
+                        Background="Transparent" BorderThickness="0" Padding="4,0,12,0">
+                    <TextBlock Text="&#x2190; &#x8FD4;&#x56DE;" FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Button>
+                <TextBlock Text="&#x5546;&#x5E97;" FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <Button DockPanel.Dock="Right" Click="Refresh_Click" Cursor="Hand"
+                        Background="Transparent" BorderThickness="0" Padding="8,0"
+                        HorizontalAlignment="Right" ToolTip="刷新">
+                    <TextBlock Text="&#x21BB; &#x5237;&#x65B0;" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Button>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ Content ═══ -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Search + category filter (built in code-behind) -->
+            <Border x:Name="SearchBar" Grid.Row="0" Background="{DynamicResource BgMediumBrush}"
+                    Padding="18,8" Visibility="Collapsed"/>
+
+            <!-- Tab headers -->
+            <Border Grid.Row="1" Background="{DynamicResource BgMediumBrush}" Padding="18,0">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="TabAvailable" Content="可安装 (0)" Click="TabAvailable_Click"
+                            Style="{DynamicResource FlatButton}" Margin="0,0,8,0"
+                            FontWeight="SemiBold"/>
+                    <Button x:Name="TabInstalled" Content="已安装 (0)" Click="TabInstalled_Click"
+                            Style="{DynamicResource FlatButton}" Margin="0,0,8,0"/>
+                    <Button x:Name="TabUninstalled" Content="已卸载 (0)" Click="TabUninstalled_Click"
+                            Style="{DynamicResource FlatButton}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Package list -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="24,16">
+                <StackPanel x:Name="PackageList" MaxWidth="800"/>
+            </ScrollViewer>
+
+            <!-- Empty state -->
+            <Border x:Name="EmptyState" Grid.Row="2" Visibility="Collapsed">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock x:Name="EmptyText" Text="暂无可用的软件包"
+                               FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="EmptyHint" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,8,0,0" Opacity="0.6"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ═══ Bottom status bar ═══ -->
+        <Border Grid.Row="2" Background="{DynamicResource BgMediumBrush}" Padding="18,8">
+            <TextBlock x:Name="TxtStatus"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       FontSize="12"/>
+        </Border>
+    </Grid>
+</UserControl>

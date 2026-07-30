@@ -1,0 +1,18 @@
+## .NET 构建产物
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+## 发布输出（由发行构建重新生成）
+publish/app/*.exe
+publish/cli/*.exe
+
+## 运行时数据（用户数据，不纳入源码）
+SuperDucker.Shared/bin/
+SuperDucker.Shared/obj/
+
+## 日志
+*.log
+build_*.txt

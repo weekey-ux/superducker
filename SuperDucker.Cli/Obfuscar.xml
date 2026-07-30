@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Obfuscar 混淆配置（仅在使用 -p:Obfuscate=true 发布时生效）。
+  默认不启用：1.0.0 阶段保持代码可直接反编译审阅，便于开源协作与排错。
+  CLI 注意事项：
+    - 命令行参数解析依赖方法名/特性（如 [Option]），相关类需加 [Obfuscation(Exclude=true)]。
+    - Program 入口点必须保留。
+-->
+<Obfuscator>
+  <Var name="InPath" value="./" />
+  <Var name="OutPath" value="./obfuscated" />
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="ReuseNames" value="true" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="HonorXmlDoc" value="true" />
+
+  <Module file="$(InPath)sd.dll">
+    <SkipType name="SuperDucker.Cli.Program" />
+  </Module>
+</Obfuscator>

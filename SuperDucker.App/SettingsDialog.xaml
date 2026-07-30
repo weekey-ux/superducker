@@ -1,0 +1,464 @@
+<UserControl x:Class="SuperDucker.App.SettingsDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{DynamicResource BgDarkBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ Header ═══ -->
+        <Border Grid.Row="0" Background="{DynamicResource BgMediumBrush}" Padding="18,10">
+            <DockPanel>
+                <Button DockPanel.Dock="Left" Click="Back_Click" Cursor="Hand"
+                        Background="Transparent" BorderThickness="0" Padding="4,0,12,0">
+                    <TextBlock Text="&#x2190; &#x8FD4;&#x56DE;" FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Button>
+                <TextBlock Text="&#x2699; &#x8BBE;&#x7F6E;" FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ Settings content (scrollable) ═══ -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,20">
+            <StackPanel MaxWidth="800" HorizontalAlignment="Stretch">
+
+                <!-- ═══════════════════════════════ -->
+                <!-- ─── Section: 常规设置 ─── -->
+                <!-- ═══════════════════════════════ -->
+                <TextBlock Text="常规设置" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- 开机自启动 -->
+                        <DockPanel>
+                            <TextBlock Text="开机自启动" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <CheckBox x:Name="CbAutoStart" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbAutoStart_Checked"
+                                      Unchecked="CbAutoStart_Unchecked"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══════════════════════════════ -->
+                <!-- ─── Section: 用户习惯 ─── -->
+                <!-- ═══════════════════════════════ -->
+                <TextBlock Text="用户习惯" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- 默认视图模式 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="默认视图模式" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Name="RbGrid" Content="图标网格"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,12,0" Checked="RbGrid_Checked"/>
+                                <RadioButton x:Name="RbList" Content="列表模式"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Checked="RbList_Checked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Tab 方向 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="Tab 方向" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Name="RbTabH" Content="水平"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,12,0" Checked="RbTabH_Checked"/>
+                                <RadioButton x:Name="RbTabV" Content="垂直"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Checked="RbTabV_Checked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 打开方式 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="打开方式" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Name="RbSingleClick" Content="单击打开"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,12,0" Checked="RbSingleClick_Checked"/>
+                                <RadioButton x:Name="RbDoubleClick" Content="双击打开"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Checked="RbDoubleClick_Checked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 面板出现位置 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="面板出现位置" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Name="RbPosCenter" Content="屏幕中心" GroupName="WinPos"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,8,0" Checked="RbPosCenter_Checked"/>
+                                <RadioButton x:Name="RbPosMouse" Content="跟随鼠标" GroupName="WinPos"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,8,0" Checked="RbPosMouse_Checked"/>
+                                <RadioButton x:Name="RbPosLast" Content="最后位置" GroupName="WinPos"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Checked="RbPosLast_Checked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 面板默认显示 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="面板默认显示" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Name="RbShowCmd" Content="命令(缩写)" GroupName="DefShow"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,8,0" Checked="RbShowCmd_Checked"/>
+                                <RadioButton x:Name="RbShowFriendly" Content="友好名称" GroupName="DefShow"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Checked="RbShowFriendly_Checked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 无操作自动隐藏 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="无操作自动隐藏" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="鼠标无操作后自动隐藏到托盘" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBox x:Name="TxtAutoHideTimeout" Width="40" Height="24"
+                                         TextAlignment="Center" FontSize="12"
+                                         Background="{DynamicResource BgMediumBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BgCardHoverBrush}"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="TxtAutoHideTimeout_TextChanged"/>
+                                <TextBlock Text="秒" FontSize="12" Margin="4,0,8,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                                <CheckBox x:Name="CbAutoHide" VerticalAlignment="Center"
+                                          Checked="CbAutoHide_Checked"
+                                          Unchecked="CbAutoHide_Unchecked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 鼠标离开自动隐藏 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="鼠标离开面板自动隐藏" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <CheckBox x:Name="CbAutoHideMouseLeave" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbAutoHideMouseLeave_Checked"
+                                      Unchecked="CbAutoHideMouseLeave_Unchecked"/>
+                        </DockPanel>
+
+                        <!-- 启动程序后自动隐藏 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="启动程序后自动隐藏" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <CheckBox x:Name="CbAutoHideOnLaunch" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbAutoHideOnLaunch_Checked"
+                                      Unchecked="CbAutoHideOnLaunch_Unchecked"/>
+                        </DockPanel>
+
+                        <!-- 程序冷启动直接最小化 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="程序冷启动直接最小化" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="启动后直接隐藏到托盘，不显示面板" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="CbStartMinimized" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbStartMinimized_Checked"
+                                      Unchecked="CbStartMinimized_Unchecked"/>
+                        </DockPanel>
+
+                        <!-- 隐藏托盘图标 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="隐藏托盘图标" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="关闭后通知区域不再显示图标" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="CbHideTrayIcon" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbHideTrayIcon_Checked"
+                                      Unchecked="CbHideTrayIcon_Unchecked"/>
+                        </DockPanel>
+
+                        <!-- 隐藏全部标签 -->
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="隐藏全部标签" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="隐藏 Tab 栏上的&quot;全部&quot;标签" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="CbHideAllTab" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbHideAllTab_Checked"
+                                      Unchecked="CbHideAllTab_Unchecked"/>
+                        </DockPanel>
+
+                        <!-- 阻止系统待机 -->
+                        <DockPanel Margin="0,10,0,0">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="阻止系统待机 / 休眠" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="运行时阻止系统进入睡眠、待机、休眠" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="CbPreventSleep" DockPanel.Dock="Right"
+                                      HorizontalAlignment="Right"
+                                      Checked="CbPreventSleep_Checked"
+                                      Unchecked="CbPreventSleep_Unchecked"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══════════════════════════════ -->
+                <!-- ─── Section: 快捷键 ─── -->
+                <!-- ═══════════════════════════════ -->
+                <TextBlock Text="快捷键" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- 显示/隐藏窗口 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="显示 / 隐藏窗口" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <Button x:Name="BtnHotkeyToggle" DockPanel.Dock="Right"
+                                    HorizontalAlignment="Right" MinWidth="140"
+                                    Style="{DynamicResource FlatButton}"
+                                    Click="BtnHotkeyToggle_Click"
+                                    PreviewKeyDown="HotkeyCapture_PreviewKeyDown"/>
+                        </DockPanel>
+
+                        <!-- 打开设置 -->
+                        <DockPanel>
+                            <TextBlock Text="打开设置页面" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <Button x:Name="BtnHotkeySettings" DockPanel.Dock="Right"
+                                    HorizontalAlignment="Right" MinWidth="140"
+                                    Style="{DynamicResource FlatButton}"
+                                    Click="BtnHotkeySettings_Click"
+                                    PreviewKeyDown="HotkeyCapture_PreviewKeyDown"/>
+                        </DockPanel>
+
+                        <TextBlock Text="点击按钮后按下新的快捷键组合" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══════════════════════════════ -->
+                <!-- ─── Section: 外观主题 ─── -->
+                <!-- ═══════════════════════════════ -->
+                <TextBlock Text="外观主题" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- 主题模式 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="主题模式" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Name="RbThemeDark" Content="暗色"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,8,0" Checked="RbThemeDark_Checked"/>
+                                <RadioButton x:Name="RbThemeLight" Content="明亮"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,8,0" Checked="RbThemeLight_Checked"/>
+                                <RadioButton x:Name="RbThemeSystem" Content="跟随系统"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Margin="0,0,8,0" Checked="RbThemeSystem_Checked"/>
+                                <RadioButton x:Name="RbThemeCustom" Content="自定义"
+                                             Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"
+                                             Checked="RbThemeCustom_Checked"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 自定义主题选择 -->
+                        <DockPanel x:Name="CustomThemeRow" Margin="0,0,0,10" Visibility="Collapsed">
+                            <TextBlock Text="自定义主题" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <TextBlock x:Name="TxtCustomTheme" Text="默认暗色" FontSize="12"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Right"
+                                       HorizontalAlignment="Right"/>
+                        </DockPanel>
+
+                        <!-- 背景透明度 -->
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="背景透明度" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBox x:Name="TxtBgOpacity" Width="50" Height="24"
+                                         TextAlignment="Center" FontSize="12"
+                                         Background="{DynamicResource BgMediumBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BgCardHoverBrush}"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="TxtBgOpacity_TextChanged"/>
+                                <TextBlock Text="(30~100%)" FontSize="11" Margin="6,0,0,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 图标透明度 -->
+                        <DockPanel>
+                            <TextBlock Text="图标透明度" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBox x:Name="TxtIconOpacity" Width="50" Height="24"
+                                         TextAlignment="Center" FontSize="12"
+                                         Background="{DynamicResource BgMediumBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BgCardHoverBrush}"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="TxtIconOpacity_TextChanged"/>
+                                <TextBlock Text="(30~100%)" FontSize="11" Margin="6,0,0,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══════════════════════════════ -->
+                <!-- ─── Section: 路径与维护 ─── -->
+                <!-- ═══════════════════════════════ -->
+                <TextBlock Text="路径与维护" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- PATH status -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="Win+R PATH 注册" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="TxtPathStatus" FontSize="11" Margin="0,2,0,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="BtnPathToggle" Content="注册"
+                                        Style="{StaticResource FlatButton}" Margin="0,0,6,0"
+                                        Click="BtnPathToggle_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Repair shortcuts -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="修复快捷方式" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="移动文件夹后重新生成 .lnk 文件" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Right" Content="修复"
+                                    Style="{StaticResource FlatButton}" HorizontalAlignment="Right"
+                                    Click="BtnRepair_Click"/>
+                        </DockPanel>
+
+                        <!-- Rescan / recovery -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="扫描恢复" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="扫描 app/ 目录，恢复丢失的程序注册" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Right" Content="扫描"
+                                    Style="{StaticResource FlatButton}" HorizontalAlignment="Right"
+                                    Click="BtnRescan_Click"/>
+                        </DockPanel>
+
+                        <!-- Open data directory -->
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="数据目录" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="TxtDataDir" FontSize="11" Margin="0,2,0,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Right" Content="打开"
+                                    Style="{StaticResource FlatButton}" HorizontalAlignment="Right"
+                                    Click="BtnOpenDir_Click"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══════════════════════════════ -->
+                <!-- ─── Section: 关于 ─── -->
+                <!-- ═══════════════════════════════ -->
+                <TextBlock Text="关于" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="版本" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       DockPanel.Dock="Left"/>
+                            <TextBlock x:Name="TxtVersion" FontSize="13"
+                                       Foreground="{DynamicResource AccentBlueBrush}"
+                                       DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="项目名称" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       DockPanel.Dock="Left"/>
+                            <TextBlock Text="SuperDucker" FontSize="13" FontWeight="Medium"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <TextBlock Text="绿色软件快速启动器 — 便携、轻量，润物细无声。"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ═══ Bottom status bar ═══ -->
+        <Border Grid.Row="2" Background="{DynamicResource BgMediumBrush}" Padding="18,8">
+            <TextBlock x:Name="TxtStatus"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       FontSize="12"/>
+        </Border>
+    </Grid>
+</UserControl>

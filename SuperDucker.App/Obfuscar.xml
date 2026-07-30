@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Obfuscar 混淆配置（仅在使用 -p:Obfuscate=true 发布时生效）。
+  默认不启用：1.0.0 阶段保持代码可直接反编译审阅，便于开源协作与排错。
+  WPF 注意事项：
+    - XAML 通过反射按名称绑定 ViewModel/事件处理方法，不能重命名。
+    - 所有 [DependsOn] / 自动化属性、x:Name 引用的字段需加 [Obfuscation(Exclude=true)]。
+    - 入口点 App / MainWindow 必须保留可读名称。
+-->
+<Obfuscator>
+  <Var name="InPath" value="./" />
+  <Var name="OutPath" value="./obfuscated" />
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="ReuseNames" value="true" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="HonorXmlDoc" value="true" />
+
+  <!-- 主程序集 -->
+  <Module file="$(InPath)superducker.dll">
+    <!-- 保留 WPF 入口与 XAML 可反射定位的类型/成员 -->
+    <SkipType name="SuperDucker.App.App" />
+    <SkipType name="SuperDucker.App.MainWindow" />
+  </Module>
+
+  <!-- 共享库：VersionHelper / FileHelper 等被 CLI 反射或公开调用的 API 保留 -->
+  <Module file="$(InPath)SuperDucker.Shared.dll">
+    <SkipType name="SuperDucker.Shared.VersionHelper" />
+    <SkipType name="SuperDucker.Shared.FileHelper" />
+  </Module>
+</Obfuscator>

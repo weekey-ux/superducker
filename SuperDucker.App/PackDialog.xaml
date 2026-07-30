@@ -1,0 +1,324 @@
+<Window x:Class="SuperDucker.App.PackDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SuperDucker 打包工具"
+        Icon="pack://application:,,,/LOGO.ico"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterScreen"
+        Width="580" MinWidth="520"
+        Height="620" MinHeight="520"
+        MaxHeight="900">
+
+    <Border CornerRadius="10" Background="{StaticResource BgDarkBrush}"
+            BorderBrush="{StaticResource BgCardHoverBrush}" BorderThickness="1" Margin="4">
+        <Border.Effect>
+            <DropShadowEffect ShadowDepth="2" BlurRadius="12" Opacity="0.5" Color="Black"/>
+        </Border.Effect>
+
+        <DockPanel>
+            <!-- ═══ Title Bar ═══ -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource BgMediumBrush}"
+                    CornerRadius="10,10,0,0" Padding="18,10"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="&#x2715;" FontSize="14" FontWeight="Bold"
+                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" Padding="8,2"
+                            Click="CloseButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <TextBlock Text="&#x8D85;&#x7EA7;&#x6E17;&#x6C34;&#x5458; 打包工具" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+
+            <!-- ═══ Bottom Bar ═══ -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource BgMediumBrush}"
+                    CornerRadius="0,0,10,10" Padding="16,10">
+                <DockPanel>
+                    <TextBlock x:Name="StatusText" DockPanel.Dock="Left"
+                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
+                               VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="取消" Style="{StaticResource FlatButton}" Margin="0,0,8,0"
+                                Click="Cancel_Click" MinWidth="64"/>
+                        <Button x:Name="PackButton" Content="打包" Style="{StaticResource FlatButton}"
+                                Background="{StaticResource AccentBlueBrush}" Foreground="White"
+                                FontWeight="SemiBold" Click="Pack_Click" MinWidth="80"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- ═══ Scrollable Content ═══ -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,14">
+
+                <StackPanel>
+
+                    <!-- ──── Section: 已有条目预填 ──── -->
+                    <Border Background="{StaticResource BgCardBrush}" CornerRadius="8"
+                            Padding="14,10" Margin="0,0,0,14">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="ExistingEntryCombo" Grid.Column="0"
+                                          DisplayMemberPath="DisplayName"
+                                          Background="{StaticResource BgMediumBrush}"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          BorderBrush="{StaticResource BgCardHoverBrush}"
+                                          Padding="10,7" FontSize="13" Height="36"
+                                          Margin="0,0,10,0"
+                                          SelectionChanged="ExistingEntry_SelectionChanged"
+                                          HorizontalContentAlignment="Stretch">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="Background" Value="#1A1A1A"/>
+                                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                                            <Setter Property="Padding" Value="8,4"/>
+                                            <Setter Property="FontSize" Value="12"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ComboBoxItem">
+                                                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                                <TextBox x:Name="SearchEntryBox" Grid.Column="1"
+                                         Style="{StaticResource SearchBoxStyle}"
+                                         Text="" Width="140"
+                                         TextChanged="SearchEntry_TextChanged"/>
+                            </Grid>
+                            <!-- Entry count hint below combo -->
+                            <TextBlock x:Name="EntryCountText" Text="" FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="2,6,0,0" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ──── Section: 源目录 & 主程序 ──── -->
+                    <Border Background="{StaticResource BgCardBrush}" CornerRadius="8"
+                            Padding="14,10" Margin="0,0,0,14">
+                        <StackPanel>
+                            <!-- Source Directory -->
+                            <TextBlock Text="源目录" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                            <DockPanel Margin="0,0,0,10">
+                                <Button DockPanel.Dock="Right" Content="浏览..." Style="{StaticResource FlatButton}"
+                                        Margin="8,0,0,0" Click="BrowseSource_Click" MinWidth="60" Padding="12,6"/>
+                                <TextBox x:Name="SourceDirBox" Style="{StaticResource SearchBoxStyle}"
+                                         TextChanged="SourceDir_Changed"/>
+                            </DockPanel>
+
+                            <!-- Main Exe -->
+                            <TextBlock Text="主程序（相对路径）" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="浏览..." Style="{StaticResource FlatButton}"
+                                        Margin="8,0,0,0" Click="BrowseMainExe_Click" MinWidth="60" Padding="12,6"/>
+                                <TextBox x:Name="MainExeBox" Style="{StaticResource SearchBoxStyle}"
+                                         TextChanged="MainExe_Changed"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ──── Section: 包信息（两列网格） ──── -->
+                    <Border Background="{StaticResource BgCardBrush}" CornerRadius="8"
+                            Padding="14,10" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="包信息" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+
+                            <!-- Row 1: 包 ID | 缩写 -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="包 ID *" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="PackageIdBox" Style="{StaticResource SearchBoxStyle}"
+                                             TextChanged="PackageId_Changed" FontSize="13" Padding="10,7"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="缩写 (Win+R)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="AbbrBox" Style="{StaticResource SearchBoxStyle}" FontSize="13" Padding="10,7"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Row 2: 显示名称 | 版本 -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="显示名称" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="NameBox" Style="{StaticResource SearchBoxStyle}" FontSize="13" Padding="10,7"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="版本" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="VersionBox" Style="{StaticResource SearchBoxStyle}" Text="1.0.0" FontSize="13" Padding="10,7"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Row 3: 描述 -->
+                            <StackPanel>
+                                <TextBlock Text="描述" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox x:Name="DescBox" Style="{StaticResource SearchBoxStyle}"
+                                         TextWrapping="Wrap" AcceptsReturn="True" Height="50"
+                                         VerticalScrollBarVisibility="Auto" FontSize="13" Padding="10,7"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ──── Section: 图标 & 输出（左右分栏） ──── -->
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Icon -->
+                        <Border Grid.Column="0" Background="{StaticResource BgCardBrush}" CornerRadius="8" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="图标" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Left" Width="48" Height="48"
+                                            Background="{StaticResource BgMediumBrush}" CornerRadius="6"
+                                            Margin="0,0,10,0" VerticalAlignment="Top">
+                                        <Image x:Name="IconPreview" Stretch="Uniform" Margin="3"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Top">
+                                        <TextBlock x:Name="IconPathText" Text="(未选择图标)"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="11" Margin="0,0,0,6" TextTrimming="CharacterEllipsis"
+                                                   MaxHeight="28" TextWrapping="Wrap"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="选择文件" Style="{StaticResource FlatButton}"
+                                                    Margin="0,0,6,0" Click="BrowseIcon_Click" MinWidth="68" Padding="10,5" FontSize="12"/>
+                                            <Button x:Name="ExtractIconBtn" Content="提取图标"
+                                                    Style="{StaticResource FlatButton}" Click="ExtractIcon_Click"
+                                                    MinWidth="68" Padding="10,5" FontSize="12" IsEnabled="False"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Output -->
+                        <Border Grid.Column="2" Background="{StaticResource BgCardBrush}" CornerRadius="8" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="输出" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="输出路径" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <DockPanel Margin="0,0,0,8">
+                                    <Button DockPanel.Dock="Right" Content="浏览..." Style="{StaticResource FlatButton}"
+                                            Margin="8,0,0,0" Click="BrowseOutput_Click" MinWidth="56" Padding="10,5" FontSize="12"/>
+                                    <TextBox x:Name="OutputPathBox" Style="{StaticResource SearchBoxStyle}" FontSize="12" Padding="9,6"/>
+                                </DockPanel>
+                                <CheckBox x:Name="ImportCheckBox" Content="打包后导入到 SuperDucker"
+                                          Foreground="{StaticResource TextPrimaryBrush}" FontSize="12"
+                                          IsChecked="True" Cursor="Hand" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- ──── Section: 附加信息 ──── -->
+                    <Border Background="{StaticResource BgCardBrush}" CornerRadius="8"
+                            Padding="14,10" Margin="0,0,0,6">
+                        <StackPanel>
+                            <TextBlock Text="附加信息" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+
+                            <!-- Row: 作者 | 官网 -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="作者" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="AuthorBox" Style="{StaticResource SearchBoxStyle}" FontSize="13" Padding="10,7"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="官方网站" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="HomepageBox" Style="{StaticResource SearchBoxStyle}" FontSize="13" Padding="10,7"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Row: 分类 | 标签 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="分类" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="CatBox"
+                                              Background="{StaticResource BgMediumBrush}"
+                                              Foreground="{StaticResource TextPrimaryBrush}"
+                                              BorderBrush="{StaticResource BgCardHoverBrush}"
+                                              Padding="10,7" FontSize="13" Height="36"
+                                              IsEditable="True"
+                                              SelectionChanged="Category_SelectionChanged">
+                                        <ComboBox.ItemContainerStyle>
+                                            <Style TargetType="ComboBoxItem">
+                                                <Setter Property="Background" Value="#1E1E1E"/>
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Setter Property="Padding" Value="10,4"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                            </Style>
+                                        </ComboBox.ItemContainerStyle>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="标签" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="TagsBox"
+                                              Background="{StaticResource BgMediumBrush}"
+                                              Foreground="{StaticResource TextPrimaryBrush}"
+                                              BorderBrush="{StaticResource BgCardHoverBrush}"
+                                              Padding="10,7" FontSize="13" Height="36"
+                                              IsEditable="True"
+                                              SelectionChanged="TagItem_SelectionChanged">
+                                        <ComboBox.ItemContainerStyle>
+                                            <Style TargetType="ComboBoxItem">
+                                                <Setter Property="Background" Value="#1E1E1E"/>
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                <Setter Property="Padding" Value="10,4"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                            </Style>
+                                        </ComboBox.ItemContainerStyle>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</Window>

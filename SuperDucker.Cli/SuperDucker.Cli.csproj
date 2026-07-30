@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>sd</AssemblyName>
+    <RootNamespace>SuperDucker.Cli</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <_EnableBuiltInCom>true</_EnableBuiltInCom>
+
+    <!-- 发行版本号：与 SuperDucker.App 保持一致（语义化版本）。 -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+
+    <!-- 许可证：MIT（最宽松的开源许可证之一） -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>SuperDucker（超级潜水员）</Authors>
+    <Company>SuperDucker</Company>
+    <Product>SuperDucker（超级潜水员）</Product>
+  </PropertyGroup>
+
+  <!-- Release publish: self-contained single-file with compression and ReadyToRun -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Tiered PGO: train during startup, re-JIT hot paths for faster warm startup -->
+    <TieredPGO>true</TieredPGO>
+    <!-- Drop embedded PDB symbols from the single-file bundle to reduce size -->
+    <StripSymbols>true</StripSymbols>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <!-- 混淆开关：默认关闭。需要时对 Release 发布加 -p:Obfuscate=true。
+       前提：已全局安装 Obfuscar（dotnet tool install Obfuscar.GlobalTool -g）。
+       说明：混淆目标在 Publish 之前对 $(TargetDir) 下的程序集执行，单文件/自包含发布
+       会将这些已混淆的 DLL 一并打包进 exe（已实测 CLI/App 单文件发布均生效）。 -->
+  <PropertyGroup Condition="'$(Obfuscate)' == 'true'">
+    <ObfuscarConfig>$(MSBuildProjectDirectory)\Obfuscar.xml</ObfuscarConfig>
+  </PropertyGroup>
+
+  <Target Name="ObfuscateBeforePublish" BeforeTargets="Publish" Condition="'$(Obfuscate)' == 'true'">
+    <Exec Command="obfuscar.console $(ObfuscarConfig)" WorkingDirectory="$(TargetDir)" />
+    <ItemGroup>
+      <_ObfFiles Include="$(TargetDir)obfuscated\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ObfFiles)" DestinationFolder="$(TargetDir)%(RecursiveDir)" OverwriteReadOnlyFiles="true" />
+    <RemoveDir Directories="$(TargetDir)obfuscated" />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuperDucker.Shared\SuperDucker.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
+

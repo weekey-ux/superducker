@@ -1,0 +1,67 @@
+<Window x:Class="SuperDucker.App.CloseChoiceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SuperDucker"
+        Icon="pack://application:,,,/LOGO.ico"
+        Width="380" Height="210"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Border CornerRadius="10" Background="{StaticResource BgDarkBrush}"
+            BorderBrush="{StaticResource BgCardHoverBrush}" BorderThickness="1" Margin="4">
+        <Border.Effect>
+            <DropShadowEffect ShadowDepth="2" BlurRadius="12" Opacity="0.5" Color="Black"/>
+        </Border.Effect>
+
+        <DockPanel>
+            <!-- Title bar -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource BgMediumBrush}"
+                    CornerRadius="10,10,0,0" Padding="18,8"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="&#x2715;" Width="30" Height="24"
+                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
+                            BorderThickness="0" Click="CloseDialog_Click" Cursor="Hand"/>
+                    <TextBlock Text="&#x8D85;&#x7EA7;&#x6E17;&#x6C34;&#x5458;" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Bottom buttons -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource BgMediumBrush}"
+                    CornerRadius="0,0,10,10" Padding="18,10">
+                <DockPanel>
+                    <CheckBox x:Name="CbRemember" DockPanel.Dock="Left"
+                              Content="&#x8BB0;&#x4F4F;&#x9009;&#x62E9;"
+                              Foreground="{StaticResource TextSecondaryBrush}"
+                              FontSize="12" VerticalAlignment="Center"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="&#x6700;&#x5C0F;&#x5316;&#x5230;&#x6258;&#x76D8;" Style="{StaticResource FlatButton}"
+                                Width="110" Margin="0,0,8,0" Click="Minimize_Click"/>
+                        <Button Content="&#x9000;&#x51FA;&#x7A0B;&#x5E8F;" Style="{StaticResource FlatButton}"
+                                Width="90" Click="Exit_Click"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Content -->
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
+                <TextBlock Text="&#x9009;&#x62E9;&#x5173;&#x95ED;&#x65B9;&#x5F0F;&#xFF1A;" FontSize="14"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           TextWrapping="Wrap">
+                    <Run Text="&#x70B9;&#x51FB;&#x300C;&#x6700;&#x5C0F;&#x5316;&#x5230;&#x6258;&#x76D8;&#x300D;&#x7F29;&#x5C0F;&#x5230;&#x7CFB;&#x7EDF;&#x901A;&#x77E5;&#x533A;"/>
+                    <LineBreak/>
+                    <Run Text="&#x70B9;&#x51FB;&#x300C;&#x9000;&#x51FA;&#x7A0B;&#x5E8F;&#x300D;&#x5173;&#x95ED; &#x8D85;&#x7EA7;&#x6E17;&#x6C34;&#x5458;"/>
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>
