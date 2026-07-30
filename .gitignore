@@ -5,14 +5,17 @@ obj/
 *.suo
 *.cache
 
-## 发布输出（由发行构建重新生成）
-publish/app/*.exe
-publish/cli/*.exe
+## 发布输出（由发行构建重新生成，不纳入源码）
+publish/
 
 ## 运行时数据（用户数据，不纳入源码）
 SuperDucker.Shared/bin/
 SuperDucker.Shared/obj/
 
-## 日志
+## 日志与构建测试产物
 *.log
 build_*.txt
+build-out.txt
+
+## IDE
+.vs/
