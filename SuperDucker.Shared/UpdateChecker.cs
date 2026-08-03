@@ -141,7 +141,7 @@ public static class UpdateChecker
         if (dash >= 0) s = s.Substring(0, dash);
         var plus = s.IndexOf('+');
         if (plus >= 0) s = s.Substring(0, plus);
-        if (!Regex.IsMatch(s, @"^\d+(\.\d+){0,2}$")) return null;
+        if (!Regex.IsMatch(s, @"^\d+(\.\d+){0,3}$")) return null;
         return s;
     }
 
