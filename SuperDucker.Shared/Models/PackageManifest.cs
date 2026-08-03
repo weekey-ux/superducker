@@ -4,8 +4,8 @@ using System.Text.Json.Serialization;
 namespace SuperDucker.Shared.Models;
 
 /// <summary>
-/// Source-generated JSON serialization context for PackageManifest and related types.
-/// Required for trimmed builds where reflection-based serialization is disabled.
+/// 为 PackageManifest 及相关类型生成的源生成 JSON 序列化上下文。
+/// 在裁剪（trimmed）构建中必须此上下文，因为反射式序列化已被禁用。
 /// </summary>
 [JsonSourceGenerationOptions(WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(PackageManifest))]
@@ -15,7 +15,7 @@ namespace SuperDucker.Shared.Models;
 internal partial class ManifestJsonContext : JsonSerializerContext { }
 
 /// <summary>
-/// Manifest for a .sdzip green software package.
+/// .sdzip 绿色软件包的清单（manifest）模型。
 /// </summary>
 public class PackageManifest
 {
@@ -68,7 +68,7 @@ public class PackageManifest
     public PackageRequirements? Requirements { get; set; }
 
     /// <summary>
-    /// Serialize to JSON with indentation.
+    /// 序列化为带缩进的 JSON 字符串。
     /// </summary>
     public string ToJson()
     {
@@ -76,7 +76,7 @@ public class PackageManifest
     }
 
     /// <summary>
-    /// Deserialize from JSON string.
+    /// 从 JSON 字符串反序列化。
     /// </summary>
     public static PackageManifest? FromJson(string json)
     {

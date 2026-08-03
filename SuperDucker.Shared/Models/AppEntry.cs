@@ -5,63 +5,63 @@ public class AppEntry
     public int Id { get; set; }
 
     /// <summary>
-    /// Unique uppercase abbreviation for Win+R launch (e.g. "CHROME")
+    /// 用于 Win+R 启动的唯一大写缩写（例如 "CHROME"）。
     /// </summary>
     public string Abbreviation { get; set; } = string.Empty;
 
     /// <summary>
-    /// Chinese friendly name, shown when Ctrl is held in panel.
-    /// Null = use built-in recommendation if available.
+    /// 中文友好名称，按住 Ctrl 时在面板中显示。
+    /// 为 null 时使用内置推荐名称（若存在）。
     /// </summary>
     public string? FriendlyName { get; set; }
 
     /// <summary>
-    /// Absolute path to the executable file
+    /// 可执行文件的绝对路径。
     /// </summary>
     public string TargetPath { get; set; } = string.Empty;
 
     /// <summary>
-    /// Working directory for the process. Null = use exe's directory.
+    /// 进程的工作目录。为 null 时使用 exe 所在目录。
     /// </summary>
     public string? WorkingDirectory { get; set; }
 
     /// <summary>
-    /// Description shown on hover in panel or via `sd e`
+    /// 描述信息，在面板悬停或执行 `sd e` 时显示。
     /// </summary>
     public string? Description { get; set; }
 
     /// <summary>
-    /// Custom icon path. Null = use exe's own icon.
+    /// 自定义图标路径。为 null 时使用 exe 自身的图标。
     /// </summary>
     public string? IconPath { get; set; }
 
     /// <summary>
-    /// Category for grouping in panel
+    /// 用于面板分组的类别。
     /// </summary>
     public string? Category { get; set; }
 
     /// <summary>
-    /// Whether this is a built-in green app (true) or external program (false)
+    /// 是否为内置绿色软件（true）或外部程序（false）。
     /// </summary>
     public bool IsBuiltIn { get; set; } = true;
 
     /// <summary>
-    /// Display order within category
+    /// 类别内的显示排序。
     /// </summary>
     public int SortOrder { get; set; }
 
     /// <summary>
-    /// Optional tab assignment for grouping
+    /// 可选的标签页归属（用于分组）。
     /// </summary>
     public int? TabId { get; set; }
 
     /// <summary>
-    /// Soft-uninstalled: hidden from main views but DB record and app files preserved.
+    /// 软卸载标记：隐藏于主视图，但数据库记录与应用文件仍保留。
     /// </summary>
     public bool IsUninstalled { get; set; }
 
     /// <summary>
-    /// Display name for panel: FriendlyName if set, else Abbreviation
+    /// 面板显示名称：若设置了友好名称则优先，否则使用缩写。
     /// </summary>
     public string DisplayName => FriendlyName ?? Abbreviation;
 }

@@ -5,8 +5,8 @@ using SuperDucker.Shared.Models;
 namespace SuperDucker.Shared.Data;
 
 /// <summary>
-/// Scans the app/ directory and re-registers any apps that have manifest.json
-/// but are missing from the database. Provides disaster recovery capability.
+/// 扫描 app/ 目录，将包含 manifest.json 但未登记到数据库的应用重新注册。
+/// 提供灾难恢复（disaster recovery）能力。
 /// </summary>
 public static class RescanHelper
 {
@@ -21,7 +21,7 @@ public static class RescanHelper
     }
 
     /// <summary>
-    /// Scan the app/ directory and re-register missing apps from manifest.json files.
+    /// 扫描 app/ 目录，根据 manifest.json 重新注册缺失的应用。
     /// </summary>
     public static RescanResult Rescan(DatabaseManager db)
     {

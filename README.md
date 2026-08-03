@@ -1,6 +1,6 @@
 # SuperDucker（超级潜水员）
 
-> 绿色软件启动器 · 版本 **1.0.0**
+> 绿色软件启动器 · 版本 **1.1.0**
 
 SuperDucker（中文名「超级潜水员」）是一款 Windows 平台下的**便携式（绿色）软件快速启动器**。
 它借鉴 macOS Spotlight / Alfred 的理念：通过简短的**缩写** + `Win+R`，瞬间启动你常用的程序或网址。
@@ -138,6 +138,7 @@ dotnet publish SuperDucker.Cli/SuperDucker.Cli.csproj -c Release -r win-x64 --se
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | 1.0.0 | 2026-07-30 | 正式发行版：版本号切换为语义化版本（SemVer，主.次.修订）；标题栏与设置页统一显示版本号；抽取 `FormatSize` 到 `FileHelper` 共享以消除重复；删除死代码 `GetVersionString` 并修正 `PackDialog` 注释瑕疵；清理根目录冗余文件；补充并规范核心代码中文注释；集成可开关的 Obfuscar 混淆（`builder.bat -obfuscate`）。 |
+| 1.1.0 | 2026-08-03 | 发行前全面规范化与优化：① 全量中文注释规范化（Native/Models/Helpers/Manager 等核心类与方法摘要翻译为中文，超大文件补充关键类摘要）；② 修复 .github CI 在 Linux 上构建 WPF 失效的问题（`ubuntu-latest` → `windows-latest`）；③ 清理 MainWindow 搜索框 placeholder 可见性重复赋值等冗余代码；④ 版本号统一升至 1.1.0（App/Cli csproj + VersionHelper 回退值）；⑤ 明确外部资源现状：程序采用离线优先设计，无运行时 CDN/JS/CSS 外部依赖，favicon 抓取仅用目标站点自身图标并本地缓存；⑥ README 版本记录与标题同步更新。 |
 
 ---
 

@@ -4,18 +4,18 @@ using SuperDucker.Shared.Models;
 namespace SuperDucker.Shared.Data;
 
 /// <summary>
-/// Manages .lnk shortcut files in the link/ directory and PATH environment variable.
-/// Uses dynamic COM interop (WScript.Shell) instead of IWshRuntimeLibrary reference,
-/// which is compatible with .NET 8's MSBuild.
+/// 管理 link/ 目录下的 .lnk 快捷方式文件以及 PATH 环境变量。
+/// 使用动态 COM 互操作（WScript.Shell）而非引用 IWshRuntimeLibrary，
+/// 以兼容 .NET 8 的 MSBuild 构建模式。
 /// </summary>
 public static class ShortcutManager
 {
     // ═══════════════════════════════════════════
-    //  .lnk File Operations
+    //  .lnk 文件操作
     // ═══════════════════════════════════════════
 
     /// <summary>
-    /// Creates or overwrites a .lnk file in the link/ directory for the given app entry.
+    /// 在 link/ 目录下为指定程序条目创建或覆盖 .lnk 文件。
     /// </summary>
     public static string CreateShortcut(AppEntry entry)
     {

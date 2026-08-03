@@ -15,13 +15,14 @@ namespace SuperDucker.App;
 public enum ViewMode { Grid, List }
 
 /// <summary>
-/// ViewModel for the main panel window.
+/// 主面板窗口的视图模型（ViewModel），负责承载应用/网址数据、
+/// 视图模式、主题、快捷键、电源管理等状态，并向 UI 暴露可绑定属性。
 /// </summary>
 public class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly DatabaseManager _db;
 
-    /// <summary>Exposes the underlying database manager for dialogs that need it (e.g. PackDialog).</summary>
+    /// <summary>向需要数据库访问的对话框（例如打包对话框）暴露底层数据库管理器。</summary>
     public DatabaseManager Db => _db;
     private string _searchText = "";
     private bool _showFriendlyNames;
@@ -51,24 +52,24 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    /// <summary>Fired after items are refreshed and the view should be rebuilt.</summary>
+    /// <summary>在条目刷新完毕、需要重建视图时触发。</summary>
     public event Action? RebuildNeeded;
 
-    /// <summary>Fired when any theme-related setting changes (theme mode, custom theme, opacity).</summary>
+    /// <summary>当任何主题相关设置变更（主题模式、自定义主题、透明度）时触发。</summary>
     public event Action? ThemeChanged;
 
-    /// <summary>Fired when hotkey settings change.</summary>
+    /// <summary>当快捷键设置变更时触发。</summary>
     public event Action? HotkeyChanged;
 
-    // ═══ Collections ═══
+    // ═══ 集合 ═══
     public ObservableCollection<TabViewModel> Tabs { get; } = new();
     public ObservableCollection<PanelItemViewModel> Items { get; } = new();
 
-    // All apps/urls cached for filtering by tab
+    // 缓存全部应用/网址，便于按标签页进行过滤
     private readonly List<AppEntry> _allApps = new();
     private readonly List<UrlEntry> _allUrls = new();
 
-    // PanelItemViewModel cache: avoid recreating on every tab switch / LoadData
+    // PanelItemViewModel 缓存：避免在每次切换标签 / LoadData 时重复创建
     private readonly Dictionary<string, PanelItemViewModel> _itemCache = new();
 
     private string AppKey(int id) => $"a:{id}";

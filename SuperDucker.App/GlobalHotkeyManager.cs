@@ -6,13 +6,13 @@ using System.Windows.Interop;
 namespace SuperDucker.App;
 
 /// <summary>
-/// Manages system-wide hotkeys using Win32 RegisterHotKey.
+/// 基于 Win32 RegisterHotKey 实现的全局（系统级）快捷键管理器。
 /// </summary>
 public sealed class GlobalHotkeyManager : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
 
-    // Modifier flags (must match Win32 values)
+    // 修饰键标志（必须与 Win32 常量值一致）
     public const int MOD_ALT = 0x0001;
     public const int MOD_CONTROL = 0x0002;
     public const int MOD_SHIFT = 0x0004;
@@ -37,7 +37,7 @@ public sealed class GlobalHotkeyManager : IDisposable
     private bool _shopRegistered;
     private bool _packRegistered;
 
-    // Pending hotkey values to register when HwndSource becomes available
+    // 当 HwndSource 尚不可用时，先暂存待注册的快捷键值，待窗口就绪后再注册
     private (int modifiers, int vk)? _pendingToggle;
     private (int modifiers, int vk)? _pendingSettings;
     private (int modifiers, int vk)? _pendingShop;
@@ -96,7 +96,7 @@ public sealed class GlobalHotkeyManager : IDisposable
     }
 
     /// <summary>
-    /// Register or update the toggle-window hotkey.
+    /// 注册或更新「切换窗口」全局快捷键。
     /// </summary>
     public void SetToggleWindowHotkey(int modifiers, int vk)
     {
@@ -115,7 +115,7 @@ public sealed class GlobalHotkeyManager : IDisposable
     }
 
     /// <summary>
-    /// Register or update the open-settings hotkey.
+    /// 注册或更新「打开设置」全局快捷键。
     /// </summary>
     public void SetOpenSettingsHotkey(int modifiers, int vk)
     {
@@ -134,7 +134,7 @@ public sealed class GlobalHotkeyManager : IDisposable
     }
 
     /// <summary>
-    /// Register or update the open-shop hotkey.
+    /// 注册或更新「打开商店」全局快捷键。
     /// </summary>
     public void SetOpenShopHotkey(int modifiers, int vk)
     {
@@ -152,7 +152,7 @@ public sealed class GlobalHotkeyManager : IDisposable
     }
 
     /// <summary>
-    /// Register or update the open-pack hotkey.
+    /// 注册或更新「打开打包工具」全局快捷键。
     /// </summary>
     public void SetOpenPackHotkey(int modifiers, int vk)
     {
@@ -240,10 +240,10 @@ public sealed class GlobalHotkeyManager : IDisposable
         _hwndSource?.RemoveHook(WndProc);
     }
 
-    // ═══ Helpers ═══
+    // ═══ 辅助方法 ═══
 
     /// <summary>
-    /// Convert WPF Key to Win32 virtual key code.
+    /// 将 WPF 的 Key 转换为 Win32 虚拟键码（virtual key code）。
     /// </summary>
     public static int KeyToVk(Key key) => KeyInterop.VirtualKeyFromKey(key);
 

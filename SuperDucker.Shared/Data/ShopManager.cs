@@ -5,12 +5,12 @@ using SuperDucker.Shared.Models;
 namespace SuperDucker.Shared.Data;
 
 /// <summary>
-/// Manages the local shop: scanning .sdzip packages, reading manifests, and installing.
+/// 管理本地商店（localshop）：扫描 .sdzip 软件包、读取清单（manifest）并完成安装。
 /// </summary>
 public static class ShopManager
 {
     /// <summary>
-    /// Gets the localshop directory path.
+    /// 获取 localshop 目录的路径。
     /// </summary>
     public static string GetShopDirectory()
     {
@@ -18,7 +18,7 @@ public static class ShopManager
     }
 
     /// <summary>
-    /// Gets the shop cache directory for extracted icons and temp files.
+    /// 获取商店缓存目录（用于解压图标与临时文件）的路径。
     /// </summary>
     public static string GetCacheDirectory()
     {

@@ -5,7 +5,7 @@ using Forms = System.Windows.Forms;
 namespace SuperDucker.App;
 
 /// <summary>
-/// Manages the system tray (notification area) icon and context menu.
+/// 管理系统托盘（通知区域）图标与右键上下文菜单。
 /// </summary>
 public sealed class SystemTrayManager : IDisposable
 {
@@ -31,7 +31,7 @@ public sealed class SystemTrayManager : IDisposable
             Text = ""
         };
 
-        // Try to load the LOGO.ico embedded resource
+        // 尝试加载内嵌资源 LOGO.ico 作为托盘图标
         try
         {
             var uri = new Uri("pack://application:,,,/LOGO.ico", UriKind.Absolute);
@@ -41,7 +41,7 @@ public sealed class SystemTrayManager : IDisposable
         }
         catch
         {
-            // Fallback: use the application icon or default
+            // 回退：使用应用程序自身图标或系统默认图标
             try
             {
                 var exePath = Environment.ProcessPath;
@@ -51,10 +51,10 @@ public sealed class SystemTrayManager : IDisposable
             catch { }
         }
 
-        // Double-click tray icon → show window
+        // 双击托盘图标 → 显示主窗口
         _notifyIcon.DoubleClick += (_, _) => ShowWindow();
 
-        // Build context menu
+        // 构建右键上下文菜单
         var contextMenu = new Forms.ContextMenuStrip();
 
         var showItem = new Forms.ToolStripMenuItem("显示面板");

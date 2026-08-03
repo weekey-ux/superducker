@@ -11,12 +11,12 @@ public static class VersionHelper
 {
     /// <summary>
     /// 获取当前执行程序集的版本号字符串（格式：主.次.修订，不含构建号）。
-    /// 例如程序集版本 1.0.0.0 返回 "1.0.0"。
-    /// 当无法读取版本时回退为 "1.0.0"。
+    /// 例如程序集版本 1.1.0.0 返回 "1.1.0"。
+    /// 当无法读取版本时回退为 "1.1.0"。
     /// </summary>
     public static string GetVersion()
     {
         var ver = Assembly.GetExecutingAssembly().GetName().Version;
-        return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "1.0.0";
+        return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "1.1.0";
     }
 }

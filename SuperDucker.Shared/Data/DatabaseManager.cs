@@ -8,14 +8,14 @@ public class DatabaseManager : IDisposable
     private readonly SqliteConnection _connection;
 
     /// <summary>
-    /// Opens (or creates) the SQLite database at the given path.
+    /// 在指定路径打开（或创建）SQLite 数据库。
     /// </summary>
     public DatabaseManager(string dbPath)
     {
         _connection = new SqliteConnection($"Data Source={dbPath}");
         _connection.Open();
 
-        // Enable WAL mode and busy timeout for concurrent access (sd.exe + superducker.exe)
+        // 启用 WAL 模式与忙等待超时，以支持 sd.exe 与 superducker.exe 并发访问
         try
         {
             using var cmd = _connection.CreateCommand();
@@ -24,16 +24,16 @@ public class DatabaseManager : IDisposable
         }
         catch
         {
-            // WAL mode may fail if DB is locked by another process or has a hot journal.
-            // Fall back to default journal mode — the app can still work in single-user mode.
+            // 若数据库被其它进程锁定或存在热日志，WAL 可能失败，
+            // 则回退到默认日志模式——程序在单用户模式下仍可正常工作。
         }
 
         InitializeSchema();
     }
 
     /// <summary>
-    /// Resolves the SuperDucker root directory based on the application's base directory.
-    /// Works correctly for both `dotnet sd.dll` (dev) and published single-file exe (production).
+    /// 解析 SuperDucker 的根目录（基于应用程序基目录）。
+    /// 同时兼容开发态（dotnet sd.dll）与发布态（单文件 exe）两种运行方式。
     /// </summary>
     public static string GetRootDirectory()
     {
@@ -60,7 +60,7 @@ public class DatabaseManager : IDisposable
     }
 
     /// <summary>
-    /// Gets the path to the link/ directory.
+    /// 获取 link/ 目录路径（快捷方式存储目录）。
     /// </summary>
     public static string GetLinkDirectory()
     {
@@ -68,7 +68,7 @@ public class DatabaseManager : IDisposable
     }
 
     /// <summary>
-    /// Gets the path to the app/ directory.
+    /// 获取 app/ 目录路径（应用图标缓存等）。
     /// </summary>
     public static string GetAppDirectory()
     {
@@ -76,7 +76,7 @@ public class DatabaseManager : IDisposable
     }
 
     /// <summary>
-    /// Gets the path to data.db.
+    /// 获取 data.db 数据库文件的默认路径。
     /// </summary>
     public static string GetDefaultDbPath()
     {

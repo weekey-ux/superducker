@@ -4,17 +4,17 @@ using System.Windows.Media;
 namespace SuperDucker.App;
 
 /// <summary>
-/// Helpers for DPI-aware rendering. Provides current monitor DPI scale
-/// and methods to compute pixel sizes that look sharp on any display.
+/// 用于 DPI 感知渲染的辅助类。提供当前显示器 DPI 缩放比例，
+/// 以及计算在各显示器上都清晰锐利的像素尺寸的方法。
 /// </summary>
 public static class DpiHelper
 {
-    /// <summary>Default WPF DPI (96 DIP = 1 inch).</summary>
+    /// <summary>WPF 默认 DPI（96 DIP = 1 英寸）。</summary>
     public const double DefaultDpi = 96.0;
 
     /// <summary>
-    /// Gets the DPI scale factor for the given visual (or the primary screen if null).
-    /// Returns 1.0 for 100% scaling, 1.5 for 150%, 2.0 for 200%, etc.
+    /// 获取指定视觉元素（若为 null 则取主屏幕）的 DPI 缩放比例。
+    /// 100% 缩放返回 1.0，150% 返回 1.5，200% 返回 2.0，以此类推。
     /// </summary>
     public static double GetScale(Visual? visual = null)
     {
@@ -24,7 +24,7 @@ public static class DpiHelper
             return dpi.DpiScaleX;
         }
 
-        // Fallback: try the primary monitor
+        // 回退：尝试主显示器
         try
         {
             var dpi = VisualTreeHelper.GetDpi(Application.Current.MainWindow);
@@ -37,7 +37,7 @@ public static class DpiHelper
     }
 
     /// <summary>
-    /// Gets the actual DPI value (not just scale) for the given visual.
+    /// 获取指定视觉元素的实际 DPI 值（不仅是缩放比例）。
     /// </summary>
     public static double GetDpi(Visual? visual = null)
     {
@@ -59,8 +59,8 @@ public static class DpiHelper
     }
 
     /// <summary>
-    /// Converts a DIP size to actual pixel size for the current DPI.
-    /// Use this when creating RenderTargetBitmap to ensure sharp rendering.
+    /// 将 DIP（设备无关像素）尺寸转换为当前 DPI 下的实际像素尺寸。
+    /// 创建 RenderTargetBitmap 时应使用本方法以保证渲染锐利。
     /// </summary>
     public static int ScalePixel(double dipSize, Visual? visual = null)
     {
@@ -68,8 +68,8 @@ public static class DpiHelper
     }
 
     /// <summary>
-    /// Returns the best icon size to extract for the current DPI.
-    /// On 100% scale returns 48, on 150% returns 64, on 200%+ returns 128.
+    /// 返回当前 DPI 下应提取的最佳图标尺寸。
+    /// 100% 缩放返回 48，150% 返回 64，200% 及以上返回 128。
     /// </summary>
     public static int GetIconExtractSize(Visual? visual = null)
     {

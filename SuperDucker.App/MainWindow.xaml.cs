@@ -11,6 +11,10 @@ using Microsoft.Win32;
 
 namespace SuperDucker.App;
 
+/// <summary>
+/// 主窗口：承载命令栏、应用面板、设置面板、商店面板，并协调系统托盘、
+/// 全局快捷键、主题切换与自动隐藏等行为。
+/// </summary>
 public partial class MainWindow : Window
 {
     private MainViewModel VM { get; }
@@ -19,17 +23,17 @@ public partial class MainWindow : Window
     private SystemTrayManager? _trayManager;
     private bool _isExiting;
 
-    // Auto-hide
+    // 自动隐藏相关
     private DispatcherTimer? _autoHideTimer;
     private bool _isMouseOverWindow = true;
 
     /// <summary>
-    /// True if a dialog owned by this window (e.g. AddDialog, CloseChoiceDialog) is currently open.
-    /// Prevents the main window from auto-hiding while the user is editing or confirming.
+    /// 当本窗口拥有的对话框（如添加对话框、关闭选择对话框）当前处于打开状态时返回 true。
+    /// 用于在用户编辑或确认期间阻止主窗口自动隐藏。
     /// </summary>
     private bool IsOwnedDialogOpen => OwnedWindows.OfType<Window>().Any(w => w.IsVisible);
 
-    // Hotkeys
+    // 全局快捷键相关
     private GlobalHotkeyManager? _hotkeyManager;
 
     public MainWindow()
@@ -517,7 +521,6 @@ public partial class MainWindow : Window
 
         searchBox.TextChanged += (s, e) =>
             placeholder.Visibility = string.IsNullOrEmpty(searchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
-        placeholder.Visibility = string.IsNullOrEmpty(searchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
 
         // List items
         var listView = new ListView

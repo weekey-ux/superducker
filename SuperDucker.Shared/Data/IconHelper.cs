@@ -4,13 +4,13 @@ using System.Runtime.InteropServices;
 namespace SuperDucker.Shared.Data;
 
 /// <summary>
-/// Utility for extracting icons from executable files.
-/// Uses Win32 PrivateExtractIcons to retrieve the largest available icon
-/// instead of the tiny 16x16/32x32 that Icon.ExtractAssociatedIcon returns.
+/// 用于从可执行文件中提取图标的工具类。
+/// 借助 Win32 的 PrivateExtractIcons 获取可用的最大尺寸图标，
+/// 而非 Icon.ExtractAssociatedIcon 默认返回的小尺寸 16x16/32x32 图标。
 /// </summary>
 public static class IconHelper
 {
-    // ── Win32 P/Invoke ──────────────────────────────────────────
+    // ── Win32 P/Invoke 声明 ──────────────────────────────────────────
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern uint PrivateExtractIconsW(
@@ -29,9 +29,9 @@ public static class IconHelper
     private const uint LR_DEFAULTCOLOR = 0x00000000;
 
     /// <summary>
-    /// Extract the largest available icon from an executable file and save it as .ico.
-    /// Tries sizes from large to small: 256 → 128 → 64 → 48 → 32.
-    /// Returns the output path on success, null on failure.
+    /// 从可执行文件中提取可用的最大尺寸图标并保存为 .ico 文件。
+    /// 按尺寸从大到小依次尝试：256 → 128 → 64 → 48 → 32。
+    /// 成功返回输出路径，失败返回 null。
     /// </summary>
     public static string? ExtractAndSaveIcon(string exePath, string outputPath)
     {
@@ -87,19 +87,18 @@ public static class IconHelper
     }
 
     /// <summary>
-    /// Convert a System.Drawing.Bitmap to a multi-size ICO that preserves
-    /// the original resolution (no upscaling).
+    /// 将 System.Drawing.Bitmap 转换为保留原始分辨率（不放大）的多尺寸 ICO。
     /// </summary>
     private static Icon? BitmapToIcon(Bitmap bmp)
     {
-        // Create an ICO with the exact bitmap size — no resizing
+        // 创建与位图原始尺寸完全一致的 ICO —— 不做缩放
         var handle = bmp.GetHicon();
         return Icon.FromHandle(handle);
     }
 
     /// <summary>
-    /// Extract icon from exe and save to the icons/ directory with the given name.
-    /// Returns the full path on success, null on failure.
+    /// 从可执行文件提取图标，并以指定名称保存到 icons/ 目录。
+    /// 成功返回完整路径，失败返回 null。
     /// </summary>
     public static string? ExtractToIconsDir(string exePath, string abbreviation)
     {

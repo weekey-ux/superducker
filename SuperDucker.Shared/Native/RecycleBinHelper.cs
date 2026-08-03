@@ -4,14 +4,14 @@ using System.IO;
 namespace SuperDucker.Shared.Native;
 
 /// <summary>
-/// Provides a cross-cutting helper for moving files to the Windows Recycle Bin.
-/// Falls back to no-op if the Shell COM object is unavailable.
+/// 提供将文件移入 Windows 回收站的通用辅助方法。
+/// 若 Shell COM 对象不可用，则静默退化为空操作（no-op）。
 /// </summary>
 public static class RecycleBinHelper
 {
     /// <summary>
-    /// Moves a file to the Recycle Bin using the Shell.Application COM object.
-    /// The caller is responsible for ensuring the file exists and is accessible.
+    /// 使用 Shell.Application COM 对象将文件移入回收站。
+    /// 调用方需保证文件存在且可访问。
     /// </summary>
     public static void MoveToRecycleBin(string filePath)
     {
@@ -28,7 +28,7 @@ public static class RecycleBinHelper
             var file = folder?.ParseName(Path.GetFileName(filePath));
             if (file != null)
             {
-                // ssfBITBUCKET = -5 (Recycle Bin). MoveHere moves the file to the bin.
+                // ssfBITBUCKET = -5（回收站）。MoveHere 将文件移入回收站。
                 shell.NameSpace(-5).InvokeMember("MoveHere",
                     System.Reflection.BindingFlags.InvokeMethod,
                     null, shell, new object[] { filePath });
@@ -36,7 +36,7 @@ public static class RecycleBinHelper
         }
         catch
         {
-            // Best-effort: recycle bin may not be available in all environments.
+            // 尽力而为：回收站在某些环境中可能不可用，失败即静默忽略。
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Net.Http;
 namespace SuperDucker.Shared.Data;
 
 /// <summary>
-/// Helpers for URL validation and favicon fetching.
+/// 网址校验与网站图标（favicon）抓取相关的辅助方法。
 /// </summary>
 public static class WebHelper
 {
@@ -19,21 +19,21 @@ public static class WebHelper
     }
 
     /// <summary>
-    /// Validates a URL by sending HEAD first, then GET as fallback.
-    /// Returns (isValid, statusCode, errorMessage).
+    /// 校验网址是否可用：先发送 HEAD 请求（快、无响应体），失败再回退为 GET 请求。
+    /// 返回值为 (是否有效, 错误信息)。
     /// </summary>
     public static async Task<(bool IsValid, string? Error)> ValidateUrlAsync(string url)
     {
         try
         {
-            // Try HEAD first (fast, no body)
+            // 先尝试 HEAD 请求（速度快、不下载响应体）
             using var headReq = new HttpRequestMessage(HttpMethod.Head, url);
             using var headResp = await _http.SendAsync(headReq, HttpCompletionOption.ResponseHeadersRead);
 
             if (headResp.IsSuccessStatusCode)
                 return (true, null);
 
-            // HEAD not supported or returned error — try GET
+            // 服务器不支持 HEAD 或返回错误 —— 改用 GET 再试
             if (headResp.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed ||
                 headResp.StatusCode == System.Net.HttpStatusCode.NotImplemented ||
                 (int)headResp.StatusCode >= 400)
@@ -191,7 +191,7 @@ public static class WebHelper
     }
 
     /// <summary>
-    /// Gets the icons cache directory.
+    /// 获取网站图标的本地缓存目录（位于程序根目录下的 icons/）。
     /// </summary>
     public static string GetIconsDirectory()
     {
@@ -199,7 +199,7 @@ public static class WebHelper
     }
 
     /// <summary>
-    /// Gets the icon file path for a given abbreviation.
+    /// 获取指定缩写对应的本地图标文件路径（icons/{缩写大写}.ico）。
     /// </summary>
     public static string GetIconPath(string abbreviation)
     {
