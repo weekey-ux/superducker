@@ -15,3 +15,8 @@
 - Git 推送 GitHub 需走代理：本地代理端口 **7890**。命令：
   `git config --global http.proxy http://127.0.0.1:7890` 和 `https.proxy` 同值。
   关闭代理软件后 git 会再报 443 超时，届时 `git config --global --unset http.proxy` 清除。
+
+- **GitHub 仓库地址**：weekey-ux/superducker（已用于 UpdateChecker 默认值 + 关于页 Hyperlink 文本）。Release 页面 https://github.com/weekey-ux/superducker/releases。
+- **Release tag ↔ csproj Version 强对齐**：tag 形如 1.2.0，App/Shared/Cli 三个 csproj <Version>1.2.0</Version>，否则 UpdateChecker 比对会失准。
+- **更新检查约定**：SuperDucker.Shared/UpdateChecker.CheckAsync 是唯一入口，**永不抛异常**（网络/解析失败都返回 UpdateCheckResult.Failed）。
+

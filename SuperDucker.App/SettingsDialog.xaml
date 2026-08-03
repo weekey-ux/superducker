@@ -483,13 +483,18 @@
 
                 <Border Background="{DynamicResource BgCardBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
                     <StackPanel>
+                        <!-- 版本行：左侧"版本"文字 + 右侧"检查更新"按钮与版本号 -->
                         <DockPanel Margin="0,0,0,8">
                             <TextBlock Text="版本" FontSize="13"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       DockPanel.Dock="Left"/>
+                                       DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                            <Button x:Name="BtnCheckUpdate" DockPanel.Dock="Right"
+                                    Content="检查更新" Style="{StaticResource FlatButton}"
+                                    HorizontalAlignment="Right" Margin="0,0,8,0"
+                                    Click="BtnCheckUpdate_Click"/>
                             <TextBlock x:Name="TxtVersion" FontSize="13"
                                        Foreground="{DynamicResource AccentBlueBrush}"
-                                       DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="0,0,0,8">
                             <TextBlock Text="项目名称" FontSize="13"
@@ -498,6 +503,18 @@
                             <TextBlock Text="SuperDucker" FontSize="13" FontWeight="Medium"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <!-- GitHub 主页：可点击超链接（蓝色 + 下划线） -->
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="GitHub 主页" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Hyperlink x:Name="LinkGitHub" Foreground="{DynamicResource AccentBlueBrush}"
+                                           TextDecorations="Underline" Cursor="Hand"
+                                           Click="LinkGitHub_Click"
+                                           ToolTip="在浏览器中打开项目主页">https://github.com/weekey-ux/superducker</Hyperlink>
+                            </TextBlock>
                         </DockPanel>
                         <TextBlock Text="绿色软件快速启动器 — 便携、轻量，润物细无声。"
                                    FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"

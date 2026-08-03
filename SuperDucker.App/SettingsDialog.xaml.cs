@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SuperDucker.Shared;
 using SuperDucker.Shared.Data;
 using SuperDucker.Shared.Native;
 
@@ -522,6 +523,102 @@ public partial class SettingsDialog : UserControl
         var dir = DatabaseManager.GetRootDirectory();
         if (Directory.Exists(dir))
             Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+    }
+
+    // ═══ About: GitHub link & Update check ═══
+
+    /// <summary>点击"GitHub 主页"链接：使用系统默认浏览器打开。</summary>
+    private void LinkGitHub_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = UpdateChecker.DefaultRepoUrl,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"无法打开浏览器：{ex.Message}";
+        }
+    }
+
+    /// <summary>点击"检查更新"：异步请求 GitHub Release API 并以弹窗反馈结果。</summary>
+    private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        // 防重复点击：检查中禁用按钮，避免用户连点造成多次请求
+        BtnCheckUpdate.IsEnabled = false;
+        TxtStatus.Text = "正在检查更新...";
+        try
+        {
+            var current = SuperDucker.Shared.VersionHelper.GetVersion();
+            var result = await UpdateChecker.CheckAsync(current);
+
+            if (result.Failed)
+            {
+                // 网络/解析失败：静默文案 + 状态栏提示，不弹模态框打扰用户
+                TxtStatus.Text = $"检查更新失败：{result.ErrorMessage}";
+                MessageBox.Show(
+                    $"无法连接到 GitHub 检查更新。\n\n{result.ErrorMessage}\n\n您可以稍后重试，或直接访问项目主页查看最新版本。",
+                    "检查更新",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (result.HasUpdate)
+            {
+                var notes = string.IsNullOrWhiteSpace(result.ReleaseNotes)
+                    ? "（无发行说明）"
+                    : result.ReleaseNotes!.Trim();
+                // 截断过长的 Markdown 避免弹窗被撑爆
+                if (notes.Length > 1200) notes = notes.Substring(0, 1200) + "\n\n…（已截断，完整内容请查看 Release 页面）";
+
+                var open = MessageBox.Show(
+                    $"发现新版本 v{result.LatestVersion}（当前 v{result.CurrentVersion}）。\n\n{notes}\n\n是否前往 GitHub Release 页面下载？\n（绿色软件，覆盖程序目录的 exe 即可完成升级，数据无迁移）",
+                    "发现新版本",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+                if (open == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = result.ReleaseUrl,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        TxtStatus.Text = $"无法打开浏览器：{ex.Message}";
+                    }
+                }
+                else
+                {
+                    TxtStatus.Text = $"已跳过更新（最新 v{result.LatestVersion}）";
+                }
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"已是最新版本（v{result.CurrentVersion}）。",
+                    "检查更新",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                TxtStatus.Text = "已是最新版本";
+            }
+        }
+        catch (Exception ex)
+        {
+            // 任何意外都被吞掉，更新检查绝不能让程序崩溃
+            TxtStatus.Text = $"检查更新异常：{ex.Message}";
+        }
+        finally
+        {
+            BtnCheckUpdate.IsEnabled = true;
+        }
     }
 
     // ═══ Theme Preset Management ═══
