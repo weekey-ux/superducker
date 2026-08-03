@@ -1,6 +1,9 @@
+using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using SuperDucker.Shared.Data;
 
 namespace SuperDucker.App;
@@ -23,6 +26,15 @@ public partial class App : Application
 
     // ShowWindow 的还原常量：将最小化窗口恢复为之前的大小和位置
     private const int SW_RESTORE = 9;
+
+    public App()
+    {
+        // 在构造期订阅全局异常兜底，避免任何未捕获异常被系统弹"未知软件异常(0xE0434352)"红框。
+        // 注意：这些订阅必须先于 OnStartup / 任何事件循环，否则可能错过。
+        DispatcherUnhandledException += App_DispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -108,5 +120,36 @@ public partial class App : Application
                 }
             });
         };
+    }
+
+    // ═══════════════════════════════════════════
+    //  全局异常兜底（防止出现 0xE0434352 红框错误弹窗）
+    // ═══════════════════════════════════════════
+
+    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        // WPF UI 线程未处理异常：记录并标记 Handled，避免进程崩溃 / 红框弹窗。
+        System.Diagnostics.Debug.WriteLine($"[UnhandledUI] {e.Exception}");
+        e.Handled = true;
+    }
+
+    private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        // 非 UI 线程的未处理异常：只能记录，不能阻止进程终止（CLR 在此之后会调用 Terminate）。
+        if (e.ExceptionObject is Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[UnhandledDomain] {ex}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[UnhandledDomain] non-CLR exception: {e.ExceptionObject}");
+        }
+    }
+
+    private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        // 后台 Task 抛异常没人观察：让 GC 终结器跑时不会因此杀死进程。
+        System.Diagnostics.Debug.WriteLine($"[UnobservedTask] {e.Exception}");
+        e.SetObserved();
     }
 }

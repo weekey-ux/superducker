@@ -1142,15 +1142,66 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Force close the window, bypassing the close-choice dialog.
+    ///
+    /// 退出流程分成多个独立步骤，每一步用 try/catch 隔离。任何子模块释放失败
+    /// 都不能阻断主退出流程，否则会触发 .NET 终结器挂起、CRT abort，最终弹出
+    /// 0xE0434352（CLR 托管异常）的"未知软件异常"红框。
     /// </summary>
     public void ForceClose()
     {
         _isExiting = true;
-        SuperDucker.Shared.Native.PowerManager.Restore();
-        _hotkeyManager?.Dispose();
-        _trayManager?.Dispose();
-        VM.Dispose();
-        Close();
+
+        try { SuperDucker.Shared.Native.PowerManager.Restore(); }
+        catch (Exception ex) { LogShutdownError("PowerManager.Restore", ex); }
+
+        try { _hotkeyManager?.Dispose(); }
+        catch (Exception ex) { LogShutdownError("HotkeyManager.Dispose", ex); }
+
+        try { _trayManager?.Dispose(); }
+        catch (Exception ex) { LogShutdownError("TrayManager.Dispose", ex); }
+
+        try { VM?.Dispose(); }
+        catch (Exception ex) { LogShutdownError("ViewModel.Dispose", ex); }
+
+        // 关闭并退出所有窗口。最后调用 Close() 触发正常的 Window_Closing / Closed 流程，
+        // 让 WPF 清理 dispatcher、渲染线程、Win32 资源。
+        try
+        {
+            Close();
+        }
+        catch (Exception ex)
+        {
+            // 即便 Close 失败，也要确保进程能结束。否则只会留下"幽灵进程"。
+            LogShutdownError("MainWindow.Close", ex);
+            Environment.Exit(0);
+        }
+
+        // 兜底：若 Close() 之后 WPF 仍因为某种原因没有退出（罕见，例如有未释放的
+        // 长寿命后台线程），用 Application.Current.Shutdown 强制结束。
+        var app = System.Windows.Application.Current;
+        if (app != null && ApplicationIsStillRunning())
+        {
+            try { app.Shutdown(); } catch { /* ignore */ }
+        }
+    }
+
+    private static bool ApplicationIsStillRunning()
+    {
+        try
+        {
+            var p = System.Diagnostics.Process.GetCurrentProcess();
+            return !p.HasExited;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void LogShutdownError(string stage, Exception ex)
+    {
+        // 退出阶段只写 Debug，避免在 Release 构建中日志异常触发崩溃。
+        System.Diagnostics.Debug.WriteLine($"[Shutdown] {stage} failed: {ex}");
     }
 
     // ═══════════════════════════════════════════
