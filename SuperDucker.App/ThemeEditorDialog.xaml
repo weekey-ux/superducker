@@ -1,0 +1,73 @@
+<Window x:Class="SuperDucker.App.ThemeEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="编辑主题" Width="480" Height="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        WindowStyle="ToolWindow">
+
+    <Grid Background="{DynamicResource BgDarkBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{DynamicResource BgMediumBrush}" Padding="16,10">
+            <TextBlock x:Name="TxtTitle" Text="&#x1F3A8; 编辑主题"
+                       FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Body -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,14">
+            <StackPanel>
+                <!-- 主题名称 -->
+                <TextBlock Text="主题名称" FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                <TextBox x:Name="TxtName" Height="30" FontSize="13"
+                         Background="{DynamicResource BgMediumBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BgCardHoverBrush}"
+                         VerticalContentAlignment="Center"
+                         Padding="8,0"/>
+                <TextBlock x:Name="TxtNameError" Text="名称不能为空且不能与已有主题重名"
+                           FontSize="11" Foreground="{DynamicResource AccentOrangeBrush}"
+                           Margin="0,4,0,0" Visibility="Collapsed"/>
+
+                <!-- 预览卡片：用代码里新建的独立画刷渲染（见 RefreshPreview()），
+                     不引用 DynamicResource——全局画刷已 Freeze，改它会抛异常并污染主题 -->
+                <Border x:Name="PreviewCard" CornerRadius="8" Margin="0,14,0,14"
+                        BorderThickness="1" Padding="14,12">
+                    <StackPanel>
+                        <TextBlock x:Name="PreviewTitle" Text="预览标题"
+                                   FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="PreviewSubtitle" Text="这是一段次要文字示例"
+                                   FontSize="11" Margin="0,2,0,10"/>
+                        <Button x:Name="PreviewButton" Content="按钮示例"
+                                Height="28" Width="96" HorizontalAlignment="Left"
+                                BorderThickness="1" Cursor="Hand"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 6 个色块 -->
+                <StackPanel x:Name="ColorRows"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="{DynamicResource BgMediumBrush}" Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnCancel" Content="取消" Width="90" Height="34"
+                        Style="{DynamicResource FlatButton}" Margin="0,0,10,0"
+                        Click="BtnCancel_Click"/>
+                <Button x:Name="BtnSave" Content="保存主题" Width="100" Height="34"
+                        Style="{DynamicResource FlatButton}"
+                        Background="{DynamicResource AccentBlueBrush}"
+                        Foreground="White" FontWeight="SemiBold"
+                        Click="BtnSave_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

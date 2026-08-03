@@ -67,10 +67,8 @@ public partial class ShopPanel : UserControl
             Height = 32,
             Margin = new Thickness(8, 0, 0, 0),
             VerticalContentAlignment = VerticalAlignment.Center,
-            Background = (SolidColorBrush)FindResource("BgDarkBrush"),
-            Foreground = (SolidColorBrush)FindResource("TextPrimaryBrush"),
-            BorderBrush = (SolidColorBrush)FindResource("BgCardHoverBrush"),
-            BorderThickness = new Thickness(1)
+            Style = (Style)FindResource("DarkComboBoxStyle"),
+            ItemContainerStyle = (Style)FindResource("DarkComboBoxItemStyle")
         };
         _categoryCombo.SelectionChanged += CategoryCombo_SelectionChanged;
         Grid.SetColumn(_categoryCombo, 1);

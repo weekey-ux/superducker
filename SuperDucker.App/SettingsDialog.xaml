@@ -230,6 +230,9 @@
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 <TextBlock Text="运行时阻止系统进入睡眠、待机、休眠" FontSize="11"
                                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock FontSize="11" Margin="0,4,0,0"
+                                           Foreground="{Binding SleepStatusBrush}"
+                                           Text="{Binding SleepStatus}"/>
                             </StackPanel>
                             <CheckBox x:Name="CbPreventSleep" DockPanel.Dock="Right"
                                       HorizontalAlignment="Right"
@@ -271,6 +274,30 @@
                                     PreviewKeyDown="HotkeyCapture_PreviewKeyDown"/>
                         </DockPanel>
 
+                        <!-- 打开商店 -->
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Text="打开商店页面" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <Button x:Name="BtnHotkeyShop" DockPanel.Dock="Right"
+                                    HorizontalAlignment="Right" MinWidth="140"
+                                    Style="{DynamicResource FlatButton}"
+                                    Click="BtnHotkeyShop_Click"
+                                    PreviewKeyDown="HotkeyCapture_PreviewKeyDown"/>
+                        </DockPanel>
+
+                        <!-- 打开打包 -->
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Text="打开打包页面" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <Button x:Name="BtnHotkeyPack" DockPanel.Dock="Right"
+                                    HorizontalAlignment="Right" MinWidth="140"
+                                    Style="{DynamicResource FlatButton}"
+                                    Click="BtnHotkeyPack_Click"
+                                    PreviewKeyDown="HotkeyCapture_PreviewKeyDown"/>
+                        </DockPanel>
+
                         <TextBlock Text="点击按钮后按下新的快捷键组合" FontSize="11"
                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,8,0,0"/>
                     </StackPanel>
@@ -306,15 +333,42 @@
                         </DockPanel>
 
                         <!-- 自定义主题选择 -->
-                        <DockPanel x:Name="CustomThemeRow" Margin="0,0,0,10" Visibility="Collapsed">
-                            <TextBlock Text="自定义主题" FontSize="13"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                            <TextBlock x:Name="TxtCustomTheme" Text="默认暗色" FontSize="12"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" DockPanel.Dock="Right"
-                                       HorizontalAlignment="Right"/>
-                        </DockPanel>
+                        <StackPanel x:Name="CustomThemeRow" Margin="0,0,0,10" Visibility="Collapsed">
+                            <!-- 第 1 行：标签 + 预设下拉 -->
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="主题预设" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                                <ComboBox x:Name="CmbThemePreset" Height="28" MinWidth="160"
+                                          HorizontalAlignment="Right"
+                                          FontSize="12"
+                                          Style="{StaticResource DarkComboBoxStyle}"
+                                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                                          ItemsSource="{Binding ThemePresets}"
+                                          SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                                          SelectionChanged="CmbThemePreset_SelectionChanged">
+                                    <!-- 用 ItemTemplate 而非 DisplayMemberPath：WPF 会据此推导只读的
+                                         SelectionBoxItemTemplate，使闭合态也显示 Name 而非对象 ToString() -->
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
+                            <!-- 第 2 行：操作按钮右对齐 -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="BtnNewTheme" Content="新建" MinWidth="68" Height="28"
+                                        Padding="10,0" Style="{StaticResource FlatButton}"
+                                        Click="BtnNewTheme_Click"/>
+                                <Button x:Name="BtnEditTheme" Content="编辑" MinWidth="68" Height="28"
+                                        Padding="10,0" Margin="6,0,0,0" Style="{StaticResource FlatButton}"
+                                        Click="BtnEditTheme_Click"/>
+                                <Button x:Name="BtnDeleteTheme" Content="删除" MinWidth="68" Height="28"
+                                        Padding="10,0" Margin="6,0,0,0" Style="{StaticResource FlatButton}"
+                                        Click="BtnDeleteTheme_Click"/>
+                            </StackPanel>
+                        </StackPanel>
 
                         <!-- 背景透明度 -->
                         <DockPanel Margin="0,0,0,10">

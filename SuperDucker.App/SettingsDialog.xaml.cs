@@ -24,8 +24,20 @@ public partial class SettingsDialog : UserControl
     public SettingsDialog(MainViewModel vm)
     {
         _vm = vm;
+        DataContext = vm;
+        // 关键：必须在 InitializeComponent 之前设为 true。
+        // XAML 加载过程中 SelectedItem 绑定会触发 SelectionChanged → UpdateThemeButtons()，
+        // 此时命名控件（如 CmbThemePreset）尚未被 InitializeComponent 赋值，会 NRE。
+        _isLoading = true;
         try { InitializeComponent(); }
-        catch (Exception ex) { throw new Exception($"[InitComponent] {ex.GetType().Name}: {ex.Message}", ex); }
+        catch (Exception ex)
+        {
+            // 把原始堆栈/InnerException 一起抛出，便于定位真正的根因
+            var inner = ex.InnerException?.Message ?? "(null)";
+            throw new Exception(
+                $"[InitComponent] {ex.GetType().Name}: {ex.Message}\nInner: {inner}\nStack: {ex.StackTrace}\nInnerStack: {ex.InnerException?.StackTrace}",
+                ex);
+        }
         LoadCurrentSettings();
     }
 
@@ -109,6 +121,8 @@ public partial class SettingsDialog : UserControl
             step = "Hotkeys";
             BtnHotkeyToggle.Content = _vm.HotkeyToggle;
             BtnHotkeySettings.Content = _vm.HotkeySettings;
+            BtnHotkeyShop.Content = _vm.HotkeyShop;
+            BtnHotkeyPack.Content = _vm.HotkeyPack;
         }
         catch (Exception ex)
         {
@@ -313,6 +327,7 @@ public partial class SettingsDialog : UserControl
         if (_isLoading) return;
         _vm.ThemeMode = 3;
         CustomThemeRow.Visibility = Visibility.Visible;
+        UpdateThemeButtons();
     }
 
     private void TxtBgOpacity_TextChanged(object sender, TextChangedEventArgs e)
@@ -343,6 +358,16 @@ public partial class SettingsDialog : UserControl
         StartCapture(BtnHotkeySettings);
     }
 
+    private void BtnHotkeyShop_Click(object sender, RoutedEventArgs e)
+    {
+        StartCapture(BtnHotkeyShop);
+    }
+
+    private void BtnHotkeyPack_Click(object sender, RoutedEventArgs e)
+    {
+        StartCapture(BtnHotkeyPack);
+    }
+
     private void StartCapture(Button button)
     {
         // If already capturing on this button, cancel
@@ -368,6 +393,10 @@ public partial class SettingsDialog : UserControl
                 _capturingButton.Content = _vm.HotkeyToggle;
             else if (_capturingButton == BtnHotkeySettings)
                 _capturingButton.Content = _vm.HotkeySettings;
+            else if (_capturingButton == BtnHotkeyShop)
+                _capturingButton.Content = _vm.HotkeyShop;
+            else if (_capturingButton == BtnHotkeyPack)
+                _capturingButton.Content = _vm.HotkeyPack;
             _capturingButton = null;
         }
     }
@@ -421,6 +450,16 @@ public partial class SettingsDialog : UserControl
         {
             _vm.HotkeySettings = hotkeyStr;
             BtnHotkeySettings.Content = hotkeyStr;
+        }
+        else if (_capturingButton == BtnHotkeyShop)
+        {
+            _vm.HotkeyShop = hotkeyStr;
+            BtnHotkeyShop.Content = hotkeyStr;
+        }
+        else if (_capturingButton == BtnHotkeyPack)
+        {
+            _vm.HotkeyPack = hotkeyStr;
+            BtnHotkeyPack.Content = hotkeyStr;
         }
 
         _capturingButton = null;
@@ -483,6 +522,83 @@ public partial class SettingsDialog : UserControl
         var dir = DatabaseManager.GetRootDirectory();
         if (Directory.Exists(dir))
             Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+    }
+
+    // ═══ Theme Preset Management ═══
+
+    private void CmbThemePreset_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoading) return;
+        // SelectedPreset 已通过 TwoWay 绑定更新，这里仅刷新删除/编辑按钮状态
+        UpdateThemeButtons();
+    }
+
+    private void UpdateThemeButtons()
+    {
+        // 防御：InitializeComponent 阶段 XAML 绑定可能触发 SelectionChanged，
+        // 此时命名控件字段尚未赋值（CmbThemePreset == null），直接访问会 NRE。
+        if (CmbThemePreset == null || BtnEditTheme == null || BtnDeleteTheme == null) return;
+        var preset = CmbThemePreset.SelectedItem as ThemePreset;
+        BtnEditTheme.IsEnabled = preset != null && !preset.IsBuiltIn;
+        BtnDeleteTheme.IsEnabled = preset != null && !preset.IsBuiltIn;
+    }
+
+    /// <summary>新建主题：以当前选中的预设（内建或自定义均可）作为起点派生。</summary>
+    private void BtnNewTheme_Click(object sender, RoutedEventArgs e)
+    {
+        var basePreset = _vm.SelectedPreset ?? _vm.ThemePresets.First(p => p.IsBuiltIn);
+        var editor = new ThemeEditorDialog(
+            basePreset,
+            _vm.ThemePresets.Where(p => !p.IsBuiltIn).ToList(),
+            isEdit: false)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        editor.OnSaved += preset =>
+        {
+            _vm.SaveCustomTheme(preset);
+            UpdateThemeButtons();
+        };
+        editor.ShowDialog();
+    }
+
+    /// <summary>编辑当前选中的自定义主题（内建不可编辑，按钮已禁用）。</summary>
+    private void BtnEditTheme_Click(object sender, RoutedEventArgs e)
+    {
+        var preset = CmbThemePreset.SelectedItem as ThemePreset;
+        if (preset == null || preset.IsBuiltIn) return;
+
+        var editor = new ThemeEditorDialog(
+            preset,
+            _vm.ThemePresets.Where(p => !p.IsBuiltIn).ToList(),
+            isEdit: true)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        editor.OnSaved += edited =>
+        {
+            // 编辑时保持原名（editor 内部已锁名），覆盖原色板
+            _vm.SaveCustomTheme(edited.Clone(preset.Name));
+            UpdateThemeButtons();
+        };
+        editor.ShowDialog();
+    }
+
+    /// <summary>删除当前选中的自定义主题（内建不可删）。</summary>
+    private void BtnDeleteTheme_Click(object sender, RoutedEventArgs e)
+    {
+        var preset = CmbThemePreset.SelectedItem as ThemePreset;
+        if (preset == null || preset.IsBuiltIn) return;
+
+        var result = MessageBox.Show(
+            $"确定删除主题「{preset.Name}」吗？此操作不可撤销。",
+            "删除主题",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (result != MessageBoxResult.Yes) return;
+
+        _vm.DeleteCustomTheme(preset);
+        UpdateThemeButtons();
     }
 
     // ═══ Auto-start helpers ═══

@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -18,6 +20,9 @@ public enum ViewMode { Grid, List }
 public class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly DatabaseManager _db;
+
+    /// <summary>Exposes the underlying database manager for dialogs that need it (e.g. PackDialog).</summary>
+    public DatabaseManager Db => _db;
     private string _searchText = "";
     private bool _showFriendlyNames;
     private bool _defaultShowFriendly;
@@ -35,12 +40,14 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private bool _hideTrayIcon = false;
     private bool _hideAllTab = false;
     private bool _preventSleep = false;
+    private bool _preventSleepActive = false;
     private int _themeMode = 0;
-    private string _customTheme = "default";
     private double _backgroundOpacity = 1.0;
     private double _iconOpacity = 1.0;
     private string _hotkeyToggle = "Ctrl+Shift+S";
     private string _hotkeySettings = "Ctrl+Shift+G";
+    private string _hotkeyShop = "Alt+F4";
+    private string _hotkeyPack = "Alt+F5";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -323,12 +330,65 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
                 PropertyChanged?.Invoke(this, new(nameof(PreventSleep)));
                 _db.SetSetting("prevent_sleep", value.ToString());
                 if (value)
-                    SuperDucker.Shared.Native.PowerManager.PreventSleep();
+                    _preventSleepActive = SuperDucker.Shared.Native.PowerManager.PreventSleep(); // 全阻止：睡眠+熄屏+心跳续期
                 else
+                {
                     SuperDucker.Shared.Native.PowerManager.Restore();
+                    _preventSleepActive = false;
+                }
+                PropertyChanged?.Invoke(this, new(nameof(PreventSleepActive)));
+                UpdateSleepStatus();
             }
         }
     }
+
+    /// <summary>阻止睡眠开关的当前状态文字（用于设置面板提示）。</summary>
+    public string SleepStatus
+    {
+        get => _sleepStatus;
+        private set
+        {
+            if (_sleepStatus != value)
+            {
+                _sleepStatus = value;
+                PropertyChanged?.Invoke(this, new(nameof(SleepStatus)));
+                PropertyChanged?.Invoke(this, new(nameof(SleepStatusBrush)));
+            }
+        }
+    }
+    private string _sleepStatus = "○ 未生效 / 已关闭";
+
+    /// <summary>状态文字对应的画刷。直接产出 Brush 对象，免去 XAML 端 Converter。</summary>
+    public System.Windows.Media.Brush SleepStatusBrush =>
+        _preventSleepActive ? GreenBrush : GrayBrush;
+
+    private static readonly System.Windows.Media.SolidColorBrush GreenBrush
+        = new(System.Windows.Media.Color.FromRgb(0x4C, 0xAF, 0x50));
+    private static readonly System.Windows.Media.SolidColorBrush GrayBrush
+        = new(System.Windows.Media.Color.FromRgb(0x90, 0x90, 0x90));
+
+    private void UpdateSleepStatus()
+    {
+        if (!_preventSleep) SleepStatus = "○ 未生效 / 已关闭";
+        else if (_preventSleepActive) SleepStatus = "● 已生效：系统睡眠已锁定";
+        else SleepStatus = "× 调用失败：API 被系统拒绝";
+    }
+
+    /// <summary>
+    /// 在窗口完全加载、UI 线程消息泵就绪后，重新应用持久化的"阻止睡眠"请求。
+    /// 放在 LoadSettings 里太早（窗口尚未 Show），部分机型的 SetThreadExecutionState
+    /// 需要活跃的消息泵才能稳定生效；此处作为二次保险。
+    /// </summary>
+    public void ApplyPersistedPowerState()
+    {
+        if (_preventSleep)
+            _preventSleepActive = SuperDucker.Shared.Native.PowerManager.PreventSleep();
+        PropertyChanged?.Invoke(this, new(nameof(PreventSleepActive)));
+        UpdateSleepStatus(); // 内部会同时通知 SleepStatus 与 SleepStatusBrush
+    }
+
+    /// <summary>反映 PowerManager 最近一次保活请求的底层 API 是否成功（true=已生效）。</summary>
+    public bool PreventSleepActive => _preventSleepActive;
 
     /// <summary>0=dark, 1=light, 2=follow system, 3=custom.</summary>
     public int ThemeMode
@@ -346,19 +406,112 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public string CustomTheme
+    // ─══ 主题预设（内建 + 自定义）══─
+    public const string BuiltInDarkName = "Dark";
+    public const string BuiltInLightName = "Light";
+
+    private readonly ObservableCollection<ThemePreset> _themePresets = new();
+    private ThemePreset? _selectedPreset;
+
+    /// <summary>所有可选主题：内建深色/浅色 + 自定义（持久化在 settings.theme_list）。</summary>
+    public ObservableCollection<ThemePreset> ThemePresets => _themePresets;
+
+    /// <summary>当前选中的主题（在 ThemeMode==3 自定义模式下生效）。</summary>
+    public ThemePreset? SelectedPreset
     {
-        get => _customTheme;
+        get => _selectedPreset;
         set
         {
-            if (_customTheme != value)
+            if (_selectedPreset != value)
             {
-                _customTheme = value;
-                PropertyChanged?.Invoke(this, new(nameof(CustomTheme)));
-                _db.SetSetting("custom_theme", value);
-                ThemeChanged?.Invoke();
+                _selectedPreset = value;
+                PropertyChanged?.Invoke(this, new(nameof(SelectedPreset)));
+                if (value != null)
+                {
+                    _db.SetSetting("selected_theme", value.Name);
+                    if (_themeMode == 3)
+                        ThemeChanged?.Invoke();
+                }
             }
         }
+    }
+
+    /// <summary>内建深色主题的固定 6 色（与 ApplyDarkTheme 对齐）。</summary>
+    public static ThemePreset BuiltInDark() => new(
+        BuiltInDarkName,
+        Color.FromRgb(0x12, 0x12, 0x18),
+        Color.FromRgb(0x1C, 0x1C, 0x28),
+        Color.FromRgb(0x24, 0x24, 0x34),
+        Color.FromRgb(0x33, 0x33, 0x46),
+        Color.FromRgb(0xF0, 0xF0, 0xF8),
+        Color.FromRgb(0xAE, 0xB0, 0xC0),
+        isBuiltIn: true);
+
+    /// <summary>内建浅色主题的固定 6 色（与 ApplyLightTheme 对齐）。</summary>
+    public static ThemePreset BuiltInLight() => new(
+        BuiltInLightName,
+        Color.FromRgb(0xF5, 0xF6, 0xFA),
+        Color.FromRgb(0xE8, 0xEA, 0xF0),
+        Color.FromRgb(0xFF, 0xFF, 0xFF),
+        Color.FromRgb(0xE2, 0xE4, 0xEC),
+        Color.FromRgb(0x20, 0x22, 0x2C),
+        Color.FromRgb(0x60, 0x64, 0x74),
+        isBuiltIn: true);
+
+    /// <summary>初始化主题集合：内建两项 + 从 DB 反序列化的自定义项。</summary>
+    private void InitializeThemePresets()
+    {
+        _themePresets.Clear();
+        _themePresets.Add(BuiltInDark());
+        _themePresets.Add(BuiltInLight());
+
+        var raw = _db.GetSetting("theme_list");
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            try
+            {
+                var list = JsonSerializer.Deserialize<List<ThemePreset.Dto>>(raw);
+                if (list != null)
+                    foreach (var d in list)
+                        _themePresets.Add(ThemePreset.FromDto(d));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Load theme_list failed: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>把当前自定义主题集合（仅自定义项）序列化回 DB。</summary>
+    private void PersistThemeList()
+    {
+        var custom = _themePresets.Where(p => !p.IsBuiltIn).Select(p => p.ToDto()).ToList();
+        _db.SetSetting("theme_list", JsonSerializer.Serialize(custom));
+    }
+
+    /// <summary>新增/覆盖一个自定义主题（同名则替换）。会切到自定义模式并立即应用。</summary>
+    public void SaveCustomTheme(ThemePreset preset)
+    {
+        var exist = _themePresets.FirstOrDefault(p => !p.IsBuiltIn && p.Name == preset.Name);
+        if (exist != null)
+            _themePresets.Remove(exist);
+        _themePresets.Add(preset);
+        PersistThemeList();
+        SelectedPreset = preset;
+        if (_themeMode != 3)
+            ThemeMode = 3;
+        else
+            ThemeChanged?.Invoke();
+    }
+
+    /// <summary>删除一个自定义主题（内建不可删）。</summary>
+    public void DeleteCustomTheme(ThemePreset preset)
+    {
+        if (preset.IsBuiltIn) return;
+        _themePresets.Remove(preset);
+        PersistThemeList();
+        if (_selectedPreset == preset)
+            SelectedPreset = _themePresets.First(p => p.IsBuiltIn);
     }
 
     public double BackgroundOpacity
@@ -423,6 +576,38 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Global hotkey string for open shop page, e.g. "Alt+F4".</summary>
+    public string HotkeyShop
+    {
+        get => _hotkeyShop;
+        set
+        {
+            if (_hotkeyShop != value)
+            {
+                _hotkeyShop = value;
+                PropertyChanged?.Invoke(this, new(nameof(HotkeyShop)));
+                _db.SetSetting("hotkey_shop", value);
+                HotkeyChanged?.Invoke();
+            }
+        }
+    }
+
+    /// <summary>Global hotkey string for open pack dialog, e.g. "Alt+F5".</summary>
+    public string HotkeyPack
+    {
+        get => _hotkeyPack;
+        set
+        {
+            if (_hotkeyPack != value)
+            {
+                _hotkeyPack = value;
+                PropertyChanged?.Invoke(this, new(nameof(HotkeyPack)));
+                _db.SetSetting("hotkey_pack", value);
+                HotkeyChanged?.Invoke();
+            }
+        }
+    }
+
     public int TotalItems => Items.Count;
     public bool IsPathRegistered => ShortcutManager.IsLinkInPath();
 
@@ -462,8 +647,17 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         // Theme settings
         var tm = _db.GetSetting("theme_mode");
         if (tm != null && int.TryParse(tm, out var tmVal)) _themeMode = tmVal;
-        var ct = _db.GetSetting("custom_theme");
-        if (ct != null) _customTheme = ct;
+        // 自定义主题：从 settings.theme_list 反序列化 + 选定项
+        InitializeThemePresets();
+        var sel = _db.GetSetting("selected_theme");
+        if (sel != null)
+            _selectedPreset = _themePresets.FirstOrDefault(p => p.Name == sel);
+        if (_selectedPreset == null)
+            _selectedPreset = _themeMode switch
+            {
+                1 => _themePresets.First(p => p.IsBuiltIn && p.Name == BuiltInLightName),
+                _ => _themePresets.First(p => p.IsBuiltIn && p.Name == BuiltInDarkName)
+            };
         var bgo = _db.GetSetting("bg_opacity");
         if (bgo != null && double.TryParse(bgo, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var bgoVal)) _backgroundOpacity = bgoVal;
         var ico = _db.GetSetting("icon_opacity");
@@ -474,6 +668,10 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         if (hkt != null) _hotkeyToggle = hkt;
         var hks = _db.GetSetting("hotkey_settings");
         if (hks != null) _hotkeySettings = hks;
+        var hksh = _db.GetSetting("hotkey_shop");
+        if (hksh != null) _hotkeyShop = hksh;
+        var hkp = _db.GetSetting("hotkey_pack");
+        if (hkp != null) _hotkeyPack = hkp;
 
         // Friendly-name display preference
         var dflt = _db.GetSetting("default_friendly");

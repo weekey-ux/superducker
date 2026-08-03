@@ -66,6 +66,8 @@ public partial class MainWindow : Window
         _hotkeyManager = new GlobalHotkeyManager(this);
         _hotkeyManager.ToggleWindowRequested += OnToggleWindow;
         _hotkeyManager.OpenSettingsRequested += OnOpenSettings;
+        _hotkeyManager.OpenShopRequested += OnOpenShop;
+        _hotkeyManager.OpenPackRequested += OnOpenPack;
         VM.HotkeyChanged += RegisterHotkeys;
         RegisterHotkeys();
 
@@ -82,6 +84,9 @@ public partial class MainWindow : Window
 
         // Wire up IsVisibleChanged after window is fully loaded
         IsVisibleChanged += Window_IsVisibleChanged;
+
+        // 应用持久化的"阻止系统睡眠"请求（UI 线程已就绪，作为二次保险）
+        VM.ApplyPersistedPowerState();
 
         // Cold start minimized: hide to tray immediately after window is fully loaded
         if (VM.StartMinimized)
@@ -153,7 +158,7 @@ public partial class MainWindow : Window
             case 0: ApplyDarkTheme(); break;
             case 1: ApplyLightTheme(); break;
             case 2: ApplySystemTheme(); break;
-            case 3: ApplyDarkTheme(); break; // Custom → default dark for now
+            case 3: ApplyCustomTheme(); break;
         }
 
         // Apply opacity
@@ -162,22 +167,33 @@ public partial class MainWindow : Window
 
     private void ApplyDarkTheme()
     {
-        SetThemeColor("BgDark", Color.FromRgb(0x1E, 0x1F, 0x2E));
-        SetThemeColor("BgMedium", Color.FromRgb(0x27, 0x28, 0x38));
-        SetThemeColor("BgCard", Color.FromRgb(0x2E, 0x30, 0x45));
-        SetThemeColor("BgCardHover", Color.FromRgb(0x3D, 0x3F, 0x5A));
-        SetThemeColor("TextPrimary", Color.FromRgb(0xE8, 0xEA, 0xFF));
-        SetThemeColor("TextSecondary", Color.FromRgb(0x9B, 0xA0, 0xC0));
+        ApplyPreset(MainViewModel.BuiltInDark());
     }
 
     private void ApplyLightTheme()
     {
-        SetThemeColor("BgDark", Color.FromRgb(0xF0, 0xF2, 0xF5));
-        SetThemeColor("BgMedium", Color.FromRgb(0xE4, 0xE6, 0xEB));
-        SetThemeColor("BgCard", Color.FromRgb(0xFF, 0xFF, 0xFF));
-        SetThemeColor("BgCardHover", Color.FromRgb(0xE0, 0xE3, 0xE8));
-        SetThemeColor("TextPrimary", Color.FromRgb(0x1A, 0x1A, 0x2E));
-        SetThemeColor("TextSecondary", Color.FromRgb(0x5A, 0x5E, 0x6A));
+        ApplyPreset(MainViewModel.BuiltInLight());
+    }
+
+    /// <summary>自定义模式：应用当前选中的主题预设；若为空则回退内建深色。</summary>
+    private void ApplyCustomTheme()
+    {
+        var preset = VM.SelectedPreset;
+        if (preset == null)
+            ApplyDarkTheme();
+        else
+            ApplyPreset(preset);
+    }
+
+    /// <summary>把一个主题预设的 6 色写入资源字典（供所有 DynamicResource 控件即时套用）。</summary>
+    private void ApplyPreset(ThemePreset preset)
+    {
+        SetThemeColor("BgDark", preset.BgDark);
+        SetThemeColor("BgMedium", preset.BgMedium);
+        SetThemeColor("BgCard", preset.BgCard);
+        SetThemeColor("BgCardHover", preset.BgCardHover);
+        SetThemeColor("TextPrimary", preset.TextPrimary);
+        SetThemeColor("TextSecondary", preset.TextSecondary);
     }
 
     private void ApplySystemTheme()
@@ -1149,6 +1165,14 @@ public partial class MainWindow : Window
         var (mod2, vk2, valid2) = GlobalHotkeyManager.ParseHotkeyString(VM.HotkeySettings);
         if (valid2 && mod2 != 0 && vk2 != 0)
             _hotkeyManager.SetOpenSettingsHotkey(mod2, vk2);
+
+        var (mod3, vk3, valid3) = GlobalHotkeyManager.ParseHotkeyString(VM.HotkeyShop);
+        if (valid3 && mod3 != 0 && vk3 != 0)
+            _hotkeyManager.SetOpenShopHotkey(mod3, vk3);
+
+        var (mod4, vk4, valid4) = GlobalHotkeyManager.ParseHotkeyString(VM.HotkeyPack);
+        if (valid4 && mod4 != 0 && vk4 != 0)
+            _hotkeyManager.SetOpenPackHotkey(mod4, vk4);
     }
 
     private void OnToggleWindow()
@@ -1194,6 +1218,20 @@ public partial class MainWindow : Window
         }
         // Open shop panel
         ToggleShop();
+    }
+
+    private void OnOpenPack()
+    {
+        // Show window first if hidden
+        if (!IsVisible)
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+        // Open pack dialog
+        var packDialog = new PackDialog(VM.Db) { Owner = this };
+        packDialog.ShowDialog();
     }
 
     private void Shop_Click(object sender, RoutedEventArgs e)

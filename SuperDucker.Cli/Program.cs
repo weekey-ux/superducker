@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using SuperDucker.Shared;
 using SuperDucker.Shared.Data;
+using SuperDucker.Shared.Native;
 using SuperDucker.Shared.Models;
 
 namespace SuperDucker.Cli;
@@ -14,36 +15,45 @@ class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        if (args.Length == 0)
+        // 只要 SD 进程存活就阻止系统休眠/熄屏（进程退出时由 finally / OS 自动释放）
+        SuperDucker.Shared.Native.PowerManager.PreventSleep();
+        try
         {
-            ShowHelp();
-            return 0;
+            if (args.Length == 0)
+            {
+                ShowHelp();
+                return 0;
+            }
+
+            using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+
+            var command = args[0].ToLowerInvariant();
+
+            return command switch
+            {
+                "add" => HandleAdd(db, args[1..]),
+                "remove" or "rm" => HandleRemove(db, args[1..]),
+                "list" or "ls" => HandleList(db, args[1..]),
+                "s" => HandleRunAsAdmin(db, args[1..]),
+                "d" => HandleOpenDirectory(db, args[1..]),
+                "e" => HandleShowDescription(db, args[1..]),
+                "edit" => HandleEdit(db, args[1..]),
+                "icon" => HandleIcon(db, args[1..]),
+                "import" => HandleImport(db, args[1..]),
+                "pack" => HandlePack(db, args[1..]),
+                "pack-gui" => HandlePackGui(),
+                "rescan" => HandleRescan(db),
+                "setup" => HandleSetup(),
+                "repair" => HandleRepair(db),
+                "url" => HandleUrl(db, args[1..]),
+                "help" or "-h" or "--help" => ShowHelp(),
+                _ => HandleRun(db, args) // Default: try to launch by abbreviation
+            };
         }
-
-        using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
-
-        var command = args[0].ToLowerInvariant();
-
-        return command switch
+        finally
         {
-            "add" => HandleAdd(db, args[1..]),
-            "remove" or "rm" => HandleRemove(db, args[1..]),
-            "list" or "ls" => HandleList(db, args[1..]),
-            "s" => HandleRunAsAdmin(db, args[1..]),
-            "d" => HandleOpenDirectory(db, args[1..]),
-            "e" => HandleShowDescription(db, args[1..]),
-            "edit" => HandleEdit(db, args[1..]),
-            "icon" => HandleIcon(db, args[1..]),
-            "import" => HandleImport(db, args[1..]),
-            "pack" => HandlePack(db, args[1..]),
-            "pack-gui" => HandlePackGui(),
-            "rescan" => HandleRescan(db),
-            "setup" => HandleSetup(),
-            "repair" => HandleRepair(db),
-            "url" => HandleUrl(db, args[1..]),
-            "help" or "-h" or "--help" => ShowHelp(),
-            _ => HandleRun(db, args) // Default: try to launch by abbreviation
-        };
+            SuperDucker.Shared.Native.PowerManager.Restore();
+        }
     }
 
     // ═══════════════════════════════════════════

@@ -21,6 +21,8 @@ public sealed class GlobalHotkeyManager : IDisposable
 
     private const int HOTKEY_TOGGLE_WINDOW = 1;
     private const int HOTKEY_OPEN_SETTINGS = 2;
+    private const int HOTKEY_OPEN_SHOP = 3;
+    private const int HOTKEY_OPEN_PACK = 4;
 
     [DllImport("user32.dll")]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
@@ -32,13 +34,19 @@ public sealed class GlobalHotkeyManager : IDisposable
     private HwndSource? _hwndSource;
     private bool _toggleRegistered;
     private bool _settingsRegistered;
+    private bool _shopRegistered;
+    private bool _packRegistered;
 
     // Pending hotkey values to register when HwndSource becomes available
     private (int modifiers, int vk)? _pendingToggle;
     private (int modifiers, int vk)? _pendingSettings;
+    private (int modifiers, int vk)? _pendingShop;
+    private (int modifiers, int vk)? _pendingPack;
 
     public event Action? ToggleWindowRequested;
     public event Action? OpenSettingsRequested;
+    public event Action? OpenShopRequested;
+    public event Action? OpenPackRequested;
 
     public GlobalHotkeyManager(Window window)
     {
@@ -70,6 +78,18 @@ public sealed class GlobalHotkeyManager : IDisposable
                     var (mod, vk) = _pendingSettings.Value;
                     SetOpenSettingsHotkey(mod, vk);
                     _pendingSettings = null;
+                }
+                if (_pendingShop.HasValue)
+                {
+                    var (mod, vk) = _pendingShop.Value;
+                    SetOpenShopHotkey(mod, vk);
+                    _pendingShop = null;
+                }
+                if (_pendingPack.HasValue)
+                {
+                    var (mod, vk) = _pendingPack.Value;
+                    SetOpenPackHotkey(mod, vk);
+                    _pendingPack = null;
                 }
             };
         }
@@ -113,6 +133,42 @@ public sealed class GlobalHotkeyManager : IDisposable
         }
     }
 
+    /// <summary>
+    /// Register or update the open-shop hotkey.
+    /// </summary>
+    public void SetOpenShopHotkey(int modifiers, int vk)
+    {
+        UnregisterOpenShop();
+        if (_hwndSource == null)
+        {
+            _pendingShop = (modifiers, vk);
+            return;
+        }
+        if (modifiers != 0 && vk != 0)
+        {
+            _shopRegistered = RegisterHotKey(_hwndSource.Handle, HOTKEY_OPEN_SHOP,
+                modifiers | MOD_NOREPEAT, vk);
+        }
+    }
+
+    /// <summary>
+    /// Register or update the open-pack hotkey.
+    /// </summary>
+    public void SetOpenPackHotkey(int modifiers, int vk)
+    {
+        UnregisterOpenPack();
+        if (_hwndSource == null)
+        {
+            _pendingPack = (modifiers, vk);
+            return;
+        }
+        if (modifiers != 0 && vk != 0)
+        {
+            _packRegistered = RegisterHotKey(_hwndSource.Handle, HOTKEY_OPEN_PACK,
+                modifiers | MOD_NOREPEAT, vk);
+        }
+    }
+
     public void UnregisterToggleWindow()
     {
         if (_toggleRegistered && _hwndSource != null)
@@ -131,6 +187,24 @@ public sealed class GlobalHotkeyManager : IDisposable
         }
     }
 
+    public void UnregisterOpenShop()
+    {
+        if (_shopRegistered && _hwndSource != null)
+        {
+            UnregisterHotKey(_hwndSource.Handle, HOTKEY_OPEN_SHOP);
+            _shopRegistered = false;
+        }
+    }
+
+    public void UnregisterOpenPack()
+    {
+        if (_packRegistered && _hwndSource != null)
+        {
+            UnregisterHotKey(_hwndSource.Handle, HOTKEY_OPEN_PACK);
+            _packRegistered = false;
+        }
+    }
+
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == WM_HOTKEY)
@@ -144,6 +218,14 @@ public sealed class GlobalHotkeyManager : IDisposable
                     break;
                 case HOTKEY_OPEN_SETTINGS:
                     OpenSettingsRequested?.Invoke();
+                    handled = true;
+                    break;
+                case HOTKEY_OPEN_SHOP:
+                    OpenShopRequested?.Invoke();
+                    handled = true;
+                    break;
+                case HOTKEY_OPEN_PACK:
+                    OpenPackRequested?.Invoke();
                     handled = true;
                     break;
             }

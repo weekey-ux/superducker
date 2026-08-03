@@ -1,0 +1,10 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  SuperDucker.Shared -> D:\Ouhin\Projects\CodeBuddy\SuperDucker\SuperDucker.Shared\bin\Release\net8.0-windows\SuperDucker.Shared.dll
+  SuperDucker.App -> D:\Ouhin\Projects\CodeBuddy\SuperDucker\SuperDucker.App\bin\Release\net8.0-windows\win-x64\superducker.dll
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:02.05
