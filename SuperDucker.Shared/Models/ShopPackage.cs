@@ -40,4 +40,35 @@ public class ShopPackage
 
     /// <summary>安装或卸载时的数据库条目 ID；尚未安装则为 null。</summary>
     public int? AppEntryId { get; set; }
+
+    /// <summary>已安装应用在本地的版本号（AppEntry.Version），未安装时为 null。</summary>
+    public string? InstalledVersion { get; set; }
+
+    /// <summary>升级状态：None=无需处理；Upgrade=版本更高可升级；Reinstall=等于或低于，覆盖重装。</summary>
+    public ShopUpgradeState UpgradeState { get; set; } = ShopUpgradeState.None;
+
+    /// <summary>.sdzip 进入 localshop 的时间（UTC）。</summary>
+    public DateTime AddedTime { get; set; } = DateTime.MinValue;
+
+    /// <summary>保留天数，默认 30 天。超过则视为过期，可被自动清理（仅限未安装的包）。</summary>
+    public int KeepDays { get; set; } = 30;
+
+    /// <summary>过期时间点（AddedTime + KeepDays）。</summary>
+    public DateTime ExpiresAt => AddedTime == DateTime.MinValue
+        ? DateTime.MaxValue
+        : AddedTime.AddDays(KeepDays);
+
+    /// <summary>是否已过期（AddedTime 已记录且当前 UTC 已超过 ExpiresAt）。</summary>
+    public bool IsExpired => AddedTime != DateTime.MinValue && DateTime.UtcNow > ExpiresAt;
+}
+
+/// <summary>本地商店中一个包相对已安装应用的升级状态。</summary>
+public enum ShopUpgradeState
+{
+    /// <summary>无对应已安装应用（即全新安装），无需升级处理。</summary>
+    None,
+    /// <summary>包版本高于已安装版本，可"升级"。</summary>
+    Upgrade,
+    /// <summary>包版本等于或低于已安装版本，覆盖"重装"。</summary>
+    Reinstall
 }

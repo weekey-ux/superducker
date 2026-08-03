@@ -112,6 +112,13 @@ public partial class SettingsDialog : UserControl
             step = "PathStatus";
             UpdatePathStatus();
 
+            step = "ShopKeepDays";
+            using (var dbKeep = new DatabaseManager(DatabaseManager.GetDefaultDbPath()))
+            {
+                var rawKeep = dbKeep.GetSetting("shop_package_keep_days");
+                TxtKeepDays.Text = int.TryParse(rawKeep, out var kd) && kd > 0 ? kd.ToString() : "30";
+            }
+
             step = "DataDir";
             TxtDataDir.Text = DatabaseManager.GetRootDirectory();
 
@@ -515,6 +522,23 @@ public partial class SettingsDialog : UserControl
         else
         {
             TxtStatus.Text = $"扫描完成 — 无需恢复 (跳过 {result.Skipped})";
+        }
+    }
+
+    /// <summary>本地商店未安装 .sdzip 安装包的保留天数（默认 30 天，超过自动清理）。</summary>
+    private void TxtKeepDays_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isLoading) return;
+        if (!int.TryParse(TxtKeepDays.Text, out var days) || days <= 0) return;
+        try
+        {
+            using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            db.SetSetting("shop_package_keep_days", days.ToString());
+            TxtStatus.Text = $"安装包保留天数已设为 {days} 天";
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"保存失败: {ex.Message}";
         }
     }
 

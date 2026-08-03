@@ -459,6 +459,28 @@
                                     Click="BtnRescan_Click"/>
                         </DockPanel>
 
+                        <!-- Shop package retention -->
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="本地商店安装包保留天数" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="未安装的安装包超过该天数后自动清理（已安装的包保留作为升级源）" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <TextBox x:Name="TxtKeepDays" Width="56" Height="26" Padding="6,0"
+                                         Background="{DynamicResource BgMediumBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BgCardHoverBrush}"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="TxtKeepDays_TextChanged"/>
+                                <TextBlock Text="天" FontSize="12" Margin="6,0,0,0"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DockPanel>
+
                         <!-- Open data directory -->
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">

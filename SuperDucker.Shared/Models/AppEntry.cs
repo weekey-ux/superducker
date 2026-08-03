@@ -61,6 +61,11 @@ public class AppEntry
     public bool IsUninstalled { get; set; }
 
     /// <summary>
+    /// 安装的应用版本号（取自 manifest.json 的 version）。旧记录为 null，升级时回读补齐。
+    /// </summary>
+    public string? Version { get; set; }
+
+    /// <summary>
     /// 面板显示名称：若设置了友好名称则优先，否则使用缩写。
     /// </summary>
     public string DisplayName => FriendlyName ?? Abbreviation;

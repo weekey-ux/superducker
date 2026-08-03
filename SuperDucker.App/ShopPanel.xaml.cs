@@ -150,6 +150,12 @@ public partial class ShopPanel : UserControl
         try
         {
             using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            // 面板打开/刷新时先清理过期的未安装包（保留天数取自设置，默认 30 天）
+            var keepDays = GetKeepDays(db);
+            var removed = ShopManager.CleanupExpiredPackages(db, keepDays);
+            if (removed.Count > 0)
+                System.Diagnostics.Debug.WriteLine($"[Shop] 自动清理 {removed.Count} 个过期安装包");
+
             _packages = ShopManager.ScanPackages(db);
         }
         catch (Exception ex)
@@ -342,13 +348,40 @@ public partial class ShopPanel : UserControl
                 {
                     Content = "安装",
                     MinWidth = 72,
+                    Margin = new Thickness(0, 0, 8, 0),
                     Style = (Style)FindResource("FlatButton")
                 };
                 installBtn.Click += (_, _) => InstallPackage(pkg, installBtn);
+
+                var delLocalBtn = new Button
+                {
+                    Content = "删除安装包",
+                    MinWidth = 84,
+                    Style = (Style)FindResource("FlatButton")
+                };
+                delLocalBtn.Click += (_, _) => DeleteLocalPackage(pkg);
                 actionPanel.Children.Add(installBtn);
+                actionPanel.Children.Add(delLocalBtn);
                 break;
 
             case ShopTab.Installed:
+                // 升级 / 重装：当本地包版本 ≥ 已安装版本时放行（高于→升级，等于/低于→重装）
+                if (pkg.UpgradeState != ShopUpgradeState.None)
+                {
+                    var upgradeLabel = pkg.UpgradeState == ShopUpgradeState.Upgrade
+                        ? $"升级 → v{pkg.Version}"
+                        : $"重装 v{pkg.Version}";
+                    var upgradeBtn = new Button
+                    {
+                        Content = upgradeLabel,
+                        MinWidth = 96,
+                        Margin = new Thickness(0, 0, 8, 0),
+                        Style = (Style)FindResource("FlatButton")
+                    };
+                    upgradeBtn.Click += (_, _) => UpgradeOrReinstallPackage(pkg, upgradeBtn);
+                    actionPanel.Children.Add(upgradeBtn);
+                }
+
                 var uninstallBtn = new Button
                 {
                     Content = "卸载",
@@ -375,10 +408,20 @@ public partial class ShopPanel : UserControl
                 {
                     Content = "重新安装",
                     MinWidth = 84,
+                    Margin = new Thickness(0, 0, 8, 0),
                     Style = (Style)FindResource("FlatButton")
                 };
                 reinstallBtn.Click += (_, _) => ReinstallPackage(pkg, reinstallBtn);
+
+                var delLocalBtn2 = new Button
+                {
+                    Content = "删除安装包",
+                    MinWidth = 84,
+                    Style = (Style)FindResource("FlatButton")
+                };
+                delLocalBtn2.Click += (_, _) => DeleteLocalPackage(pkg);
                 actionPanel.Children.Add(reinstallBtn);
+                actionPanel.Children.Add(delLocalBtn2);
                 break;
         }
 
@@ -565,5 +608,86 @@ public partial class ShopPanel : UserControl
             btn.IsEnabled = true;
             TxtStatus.Text = $"重新安装失败: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// 升级或覆盖重装已安装应用：高于已装版本→升级；等于/低于→重装（覆盖）。
+    /// </summary>
+    private void UpgradeOrReinstallPackage(ShopPackage pkg, Button btn)
+    {
+        var isUpgrade = pkg.UpgradeState == ShopUpgradeState.Upgrade;
+        try
+        {
+            btn.IsEnabled = false;
+            btn.Content = isUpgrade ? "升级中..." : "重装中...";
+
+            using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            var entry = ShopManager.UpgradePackage(pkg, db);
+
+            if (entry != null)
+            {
+                _vm.LoadData();
+                TxtStatus.Text = isUpgrade
+                    ? $"已升级: {pkg.Name} → v{pkg.Version}"
+                    : $"已重装: {pkg.Name} v{pkg.Version}";
+                UpdateTabCounts();
+                Installed?.Invoke(this, EventArgs.Empty);
+                RenderList();
+            }
+            else
+            {
+                btn.Content = isUpgrade ? $"升级 → v{pkg.Version}" : $"重装 v{pkg.Version}";
+                btn.IsEnabled = true;
+                TxtStatus.Text = $"{(isUpgrade ? "升级" : "重装")}失败: {pkg.Name}";
+            }
+        }
+        catch (Exception ex)
+        {
+            btn.Content = isUpgrade ? $"升级 → v{pkg.Version}" : $"重装 v{pkg.Version}";
+            btn.IsEnabled = true;
+            TxtStatus.Text = $"{(isUpgrade ? "升级" : "重装")}失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// 手动删除本地商店中的 .sdzip 安装包（不影响已安装应用）。
+    /// </summary>
+    private void DeleteLocalPackage(ShopPackage pkg)
+    {
+        var warn = pkg.IsInstalled
+            ? $"确定要删除 localshop 中的安装包「{pkg.Name}」吗？\n\n已安装的应用不受影响，但将失去此版本的升级/重装来源。"
+            : $"确定要删除安装包「{pkg.Name}」吗？此文件将被永久删除。";
+
+        var result = MessageBox.Show(warn, "确认删除安装包", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            if (ShopManager.DeleteLocalPackage(pkg, db))
+            {
+                TxtStatus.Text = $"已删除安装包: {pkg.Name}";
+                RefreshPackages();
+                UpdateTabCounts();
+                RenderList();
+            }
+            else
+            {
+                TxtStatus.Text = $"删除安装包失败: {pkg.Name}";
+            }
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"删除安装包失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>从设置表读取安装包保留天数（默认 30 天）。</summary>
+    private static int GetKeepDays(DatabaseManager db)
+    {
+        var raw = db.GetSetting("shop_package_keep_days");
+        if (int.TryParse(raw, out var days) && days > 0)
+            return days;
+        return 30;
     }
 }

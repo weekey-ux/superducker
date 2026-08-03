@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using SuperDucker.Shared;
 using SuperDucker.Shared.Helpers;
 using SuperDucker.Shared.Models;
 
@@ -55,6 +56,40 @@ public static class ShopManager
                     pkg.AppEntryId = existing.Id;
                     pkg.IsInstalled = !existing.IsUninstalled;
                     pkg.IsUninstalled = existing.IsUninstalled;
+
+                    // 补齐已安装应用的版本号：旧记录可能为 null，回读 manifest.json
+                    var installedVersion = existing.Version;
+                    if (string.IsNullOrEmpty(installedVersion))
+                    {
+                        var appDir = DatabaseManager.GetAppDirectory();
+                        var manifestPath = Path.Combine(appDir, pkg.PackageId, "manifest.json");
+                        installedVersion = ReadInstalledVersion(manifestPath);
+                        if (!string.IsNullOrEmpty(installedVersion))
+                        {
+                            existing.Version = installedVersion;
+                            db.UpdateApp(existing);
+                        }
+                    }
+
+                    pkg.InstalledVersion = installedVersion;
+
+                    // 计算升级状态：高于→升级；等于/低于→重装（仅对已安装的应用有意义）
+                    if (!string.IsNullOrEmpty(installedVersion))
+                    {
+                        var cmp = UpdateChecker.CompareSemVer(
+                            UpdateChecker.NormalizeVersion(pkg.Version) ?? "0.0.0",
+                            UpdateChecker.NormalizeVersion(installedVersion) ?? "0.0.0");
+                        pkg.UpgradeState = cmp > 0 ? ShopUpgradeState.Upgrade : ShopUpgradeState.Reinstall;
+                    }
+                }
+
+                // 登记安装包加入时间（用于定时清理）。已安装的应用其包保留作为升级源，
+                // 不会被自动删除；未安装的包过期后由 CleanupExpiredPackages 清理。
+                pkg.AddedTime = db.GetShopPackageAddedTime(sdzipPath) ?? DateTime.MinValue;
+                if (pkg.AddedTime == DateTime.MinValue)
+                {
+                    db.UpsertShopPackage(sdzipPath, pkg.KeepDays);
+                    pkg.AddedTime = db.GetShopPackageAddedTime(sdzipPath) ?? DateTime.MinValue;
                 }
 
                 packages.Add(pkg);
@@ -124,6 +159,22 @@ public static class ShopManager
     }
 
     /// <summary>
+    /// 从已安装应用目录的 manifest.json 中回读版本号（用于补齐旧记录缺失的 AppEntry.Version）。
+    /// </summary>
+    private static string? ReadInstalledVersion(string manifestPath)
+    {
+        try
+        {
+            if (!File.Exists(manifestPath)) return null;
+            var json = File.ReadAllText(manifestPath);
+            var manifest = PackageManifest.FromJson(json);
+            return manifest?.Version;
+        }
+        catch
+        {
+            return null;
+        }
+    }
     /// Installs a package from its .sdzip file into the app/ directory.
     /// If the package was previously uninstalled, restores the existing entry.
     /// Returns the installed AppEntry, or null if already installed or on failure.
@@ -321,5 +372,157 @@ public static class ShopManager
         package.IsUninstalled = false;
         package.AppEntryId = null;
         return true;
+    }
+
+    /// <summary>
+    /// 升级 / 覆盖重装一个已安装的应用：将 .sdzip 内容覆盖解压到 app/{PackageId} 目录，
+    /// 更新数据库中的 TargetPath / Version，并重建快捷方式。仅对已安装的应用有效。
+    /// 返回更新后的 AppEntry，失败返回 null。
+    /// </summary>
+    public static AppEntry? UpgradePackage(ShopPackage package, DatabaseManager db)
+    {
+        if (!package.AppEntryId.HasValue) return null;
+
+        var entry = db.GetAppById(package.AppEntryId.Value);
+        if (entry == null || entry.IsUninstalled) return null;
+
+        var appDir = DatabaseManager.GetAppDirectory();
+        var targetDir = Path.Combine(appDir, package.PackageId);
+
+        // 确保目标目录存在（理论上已安装应存在，缺失则创建）
+        Directory.CreateDirectory(targetDir);
+
+        string? extractedIconPath = null;
+        PackageManifest? manifest = null;
+
+        using (var zipStream = File.OpenRead(package.SdzipPath))
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+        {
+            foreach (var entryItem in archive.Entries)
+            {
+                if (entryItem.FullName == "manifest.json")
+                {
+                    using var reader = new StreamReader(entryItem.Open());
+                    var json = reader.ReadToEnd();
+                    manifest = PackageManifest.FromJson(json);
+                    File.WriteAllText(Path.Combine(targetDir, "manifest.json"), json);
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(entryItem.Name)) continue;
+
+                if (!entryItem.FullName.Contains('/') &&
+                    (entryItem.Name.StartsWith("icon.", StringComparison.OrdinalIgnoreCase) ||
+                     entryItem.Name.StartsWith(package.Abbreviation + ".", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var iconsDir = WebHelper.GetIconsDirectory();
+                    Directory.CreateDirectory(iconsDir);
+                    var iconExt = Path.GetExtension(entryItem.Name);
+                    extractedIconPath = Path.Combine(iconsDir, $"{package.Abbreviation}{iconExt}");
+                    entryItem.ExtractToFile(extractedIconPath, true);
+                    continue;
+                }
+
+                var entryPath = entryItem.FullName;
+                if (entryPath.StartsWith("app/"))
+                    entryPath = entryPath[4..];
+
+                var targetPath = Path.GetFullPath(Path.Combine(targetDir, entryPath));
+                if (!targetPath.StartsWith(targetDir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
+                    !targetPath.Equals(targetDir, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var targetFileDir = Path.GetDirectoryName(targetPath);
+                if (targetFileDir != null) Directory.CreateDirectory(targetFileDir);
+
+                entryItem.ExtractToFile(targetPath, true);
+            }
+        }
+
+        if (manifest == null) return null;
+
+        entry.TargetPath = Path.Combine(targetDir, manifest.MainExe);
+        entry.WorkingDirectory = targetDir;
+        entry.IconPath = extractedIconPath ?? entry.IconPath;
+        entry.Version = manifest.Version; // 升级后写入新版本号
+        db.UpdateApp(entry);
+
+        ShortcutManager.DeleteShortcut(entry.Abbreviation);
+        ShortcutManager.CreateShortcut(entry);
+
+        package.IsInstalled = true;
+        package.IsUninstalled = false;
+        package.InstalledVersion = manifest.Version;
+        package.UpgradeState = ShopUpgradeState.None;
+        return entry;
+    }
+
+    /// <summary>
+    /// 手动删除本地商店中的 .sdzip 安装包（仅删除包文件与元信息，不影响已安装的应用）。
+    /// </summary>
+    public static bool DeleteLocalPackage(ShopPackage package, DatabaseManager db)
+    {
+        try
+        {
+            if (File.Exists(package.SdzipPath))
+                File.Delete(package.SdzipPath);
+        }
+        catch
+        {
+            return false;
+        }
+
+        db.DeleteShopPackage(package.SdzipPath);
+
+        // 已安装的包不应被简单"删除安装包"操作移除（保留作升级源）；这里仅清引用
+        if (!package.IsInstalled && !package.IsUninstalled)
+        {
+            package.AppEntryId = null;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 清理过期的 .sdzip 安装包：仅删除"未安装"且超过 keep_days（默认30天）的包及其元信息。
+    /// 已安装的包即使过期也保留，以作为升级来源。返回被删除的包路径列表。
+    /// </summary>
+    public static List<string> CleanupExpiredPackages(DatabaseManager db, int keepDays = 30)
+    {
+        var shopDir = GetShopDirectory();
+        var removed = new List<string>();
+
+        if (!Directory.Exists(shopDir))
+            return removed;
+
+        foreach (var sdzipPath in Directory.GetFiles(shopDir, "*.sdzip"))
+        {
+            var added = db.GetShopPackageAddedTime(sdzipPath);
+            if (added == null) continue; // 尚未登记，跳过
+
+            // 读取包的 abbreviation 以判断对应应用是否已安装
+            ShopPackage? pkg = null;
+            try { pkg = ReadPackageInfo(sdzipPath, GetCacheDirectory()); } catch { }
+            if (pkg == null) continue;
+
+            pkg.AddedTime = added.Value;
+            pkg.KeepDays = keepDays;
+
+            // 仅当该包对应应用未安装时才允许清理
+            var existing = db.GetAppByAbbreviation(pkg.Abbreviation.ToUpperInvariant());
+            var isInstalled = existing != null && !existing.IsUninstalled;
+
+            if (!isInstalled && pkg.IsExpired)
+            {
+                try
+                {
+                    File.Delete(sdzipPath);
+                    db.DeleteShopPackage(sdzipPath);
+                    removed.Add(sdzipPath);
+                }
+                catch { /* Best-effort cleanup */ }
+            }
+        }
+
+        return removed;
     }
 }

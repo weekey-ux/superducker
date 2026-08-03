@@ -129,6 +129,20 @@ public class DatabaseManager : IDisposable
         MigrateAddColumn("url_entries", "tab_id", "INTEGER REFERENCES tabs(id) ON DELETE SET NULL");
         MigrateAddColumn("url_entries", "icon_path", "TEXT");
         MigrateAddColumn("app_entries", "is_uninstalled", "INTEGER NOT NULL DEFAULT 0");
+        MigrateAddColumn("app_entries", "version", "TEXT");
+
+        // 本地商店安装包元信息表：登记 .sdzip 进入时间，用于定时清理
+        using (var cmd2 = _connection.CreateCommand())
+        {
+            cmd2.CommandText = @"
+                CREATE TABLE IF NOT EXISTS shop_packages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    package_path TEXT UNIQUE NOT NULL,
+                    added_time TEXT NOT NULL,
+                    keep_days INTEGER NOT NULL DEFAULT 30
+                );";
+            cmd2.ExecuteNonQuery();
+        }
     }
 
     private void MigrateAddColumn(string table, string column, string type)
@@ -265,8 +279,8 @@ public class DatabaseManager : IDisposable
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO app_entries (abbreviation, friendly_name, target_path, working_directory,
-                description, icon_path, category, is_built_in, sort_order, tab_id, is_uninstalled)
-            VALUES (@abbr, @fn, @tp, @wd, @desc, @icon, @cat, @bi, @so, @tab_id, @un);
+                description, icon_path, category, is_built_in, sort_order, tab_id, is_uninstalled, version)
+            VALUES (@abbr, @fn, @tp, @wd, @desc, @icon, @cat, @bi, @so, @tab_id, @un, @ver);
             SELECT last_insert_rowid();
         ";
         BindAppParams(cmd, entry);
@@ -282,7 +296,7 @@ public class DatabaseManager : IDisposable
                 abbreviation = @abbr, friendly_name = @fn, target_path = @tp,
                 working_directory = @wd, description = @desc, icon_path = @icon,
                 category = @cat, is_built_in = @bi, sort_order = @so, tab_id = @tab_id,
-                is_uninstalled = @un
+                is_uninstalled = @un, version = @ver
             WHERE id = @id
         ";
         BindAppParams(cmd, entry);
@@ -321,6 +335,7 @@ public class DatabaseManager : IDisposable
         cmd.Parameters.AddWithValue("@so", entry.SortOrder);
         cmd.Parameters.AddWithValue("@tab_id", (object?)entry.TabId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@un", entry.IsUninstalled ? 1 : 0);
+        cmd.Parameters.AddWithValue("@ver", (object?)entry.Version ?? DBNull.Value);
     }
 
     private static List<AppEntry> ReadApps(SqliteCommand cmd)
@@ -343,6 +358,7 @@ public class DatabaseManager : IDisposable
                 SortOrder = reader.GetInt32(reader.GetOrdinal("sort_order")),
                 TabId = reader.IsDBNull(reader.GetOrdinal("tab_id")) ? null : reader.GetInt32(reader.GetOrdinal("tab_id")),
                 IsUninstalled = reader.GetInt32(reader.GetOrdinal("is_uninstalled")) == 1,
+                Version = reader.IsDBNull(reader.GetOrdinal("version")) ? null : reader.GetString(reader.GetOrdinal("version")),
             });
         }
         return list;
@@ -540,6 +556,52 @@ public class DatabaseManager : IDisposable
         cmd.CommandText = "INSERT OR REPLACE INTO settings (key, value) VALUES (@key, @value)";
         cmd.Parameters.AddWithValue("@key", key);
         cmd.Parameters.AddWithValue("@value", value);
+        cmd.ExecuteNonQuery();
+    }
+
+    // ═══════════════════════════════════════════
+    //  Shop Packages (本地商店 .sdzip 元信息)
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 登记（或更新）一个 .sdzip 安装包的加入时间。首次扫描到该包时调用，
+    /// 之后重复扫描不会改变其 added_time，从而保证 keep_days 计时稳定。
+    /// </summary>
+    public void UpsertShopPackage(string packagePath, int keepDays)
+    {
+        var existing = GetShopPackageAddedTime(packagePath);
+        if (existing.HasValue)
+            return; // 已登记，保留原加入时间
+
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO shop_packages (package_path, added_time, keep_days)
+            VALUES (@path, @time, @keep)
+            ON CONFLICT(package_path) DO UPDATE SET keep_days = @keep";
+        cmd.Parameters.AddWithValue("@path", packagePath);
+        cmd.Parameters.AddWithValue("@time", DateTime.UtcNow.ToString("o"));
+        cmd.Parameters.AddWithValue("@keep", keepDays);
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>读取某 .sdzip 的加入时间（UTC）；未登记则返回 null。</summary>
+    public DateTime? GetShopPackageAddedTime(string packagePath)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT added_time FROM shop_packages WHERE package_path = @path";
+        cmd.Parameters.AddWithValue("@path", packagePath);
+        var val = cmd.ExecuteScalar();
+        if (val == null || val == DBNull.Value)
+            return null;
+        return DateTime.Parse((string)val, null, System.Globalization.DateTimeStyles.RoundtripKind);
+    }
+
+    /// <summary>删除某 .sdzip 的元信息记录（手动删除安装包时调用）。</summary>
+    public void DeleteShopPackage(string packagePath)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM shop_packages WHERE package_path = @path";
+        cmd.Parameters.AddWithValue("@path", packagePath);
         cmd.ExecuteNonQuery();
     }
 
