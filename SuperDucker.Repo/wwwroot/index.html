@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperDucker 商店服务 · 管理</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: #0f1115; color: #e6e6e6; padding: 24px; }
+        h1 { font-size: 20px; margin-bottom: 4px; }
+        .sub { color: #8a8f98; font-size: 13px; margin-bottom: 20px; }
+        .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+        .toolbar input[type=text] { flex: 1; min-width: 200px; padding: 9px 12px; background: #1a1d24; border: 1px solid #2a2e38; border-radius: 6px; color: #e6e6e6; }
+        .toolbar button { padding: 9px 16px; background: #3b82f6; border: none; border-radius: 6px; color: #fff; font-size: 13px; cursor: pointer; }
+        .toolbar button:hover { background: #2f6fd6; }
+        .toolbar .ghost { background: #232733; }
+        .toolbar .ghost:hover { background: #2c3140; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+        .card { background: #1a1d24; border: 1px solid #2a2e38; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .card .top { display: flex; gap: 12px; align-items: center; }
+        .card img { width: 48px; height: 48px; border-radius: 8px; object-fit: contain; background: #0f1115; flex-shrink: 0; }
+        .card .name { font-size: 15px; font-weight: 600; }
+        .card .ver { font-size: 12px; color: #8a8f98; }
+        .card .meta { font-size: 12px; color: #6b7280; word-break: break-all; }
+        .card .desc { font-size: 12px; color: #b8bcc4; line-height: 1.5; max-height: 36px; overflow: hidden; }
+        .card .acts { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+        .card .acts button { flex: 1; padding: 7px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; color: #fff; background: #313846; }
+        .card .acts button:hover { background: #3a4150; }
+        .card .acts .del { background: #7f1d1d; }
+        .card .acts .del:hover { background: #991b1b; }
+        .card .acts .dl { background: #1e3a5f; }
+        .card .acts .dl:hover { background: #234769; }
+        #status { margin: 14px 0; font-size: 13px; min-height: 18px; }
+        .ok { color: #4ade80; } .err { color: #f87171; }
+        hr { border: none; border-top: 1px solid #2a2e38; margin: 22px 0; }
+        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 10; }
+        .modal-bg.show { display: flex; }
+        .modal { background: #161922; border: 1px solid #2a2e38; border-radius: 12px; padding: 22px; width: 420px; max-width: 92vw; }
+        .modal h3 { font-size: 16px; margin-bottom: 14px; }
+        .modal label { display: block; font-size: 12px; color: #b8bcc4; margin: 12px 0 6px; }
+        .modal input[type=text], .modal input[type=file] { width: 100%; padding: 9px; background: #0f1115; border: 1px solid #2a2e38; border-radius: 6px; color: #e6e6e6; }
+        .modal .row { display: flex; gap: 10px; margin-top: 18px; }
+        .modal .row button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; color: #fff; font-size: 13px; }
+        .modal .row .primary { background: #3b82f6; }
+        .modal .row .cancel { background: #313846; }
+        pre { background: #0f1115; border: 1px solid #2a2e38; border-radius: 8px; padding: 14px; font-size: 12px; color: #cbd5e1; overflow: auto; max-height: 50vh; white-space: pre-wrap; word-break: break-all; }
+        .hint { font-size: 12px; color: #6b7280; line-height: 1.7; }
+        code { color: #93c5fd; }
+    </style>
+</head>
+<body>
+    <h1>SuperDucker 商店服务</h1>
+    <div class="sub">局域网内软件仓库管理 · 增删改查</div>
+
+    <div class="toolbar">
+        <input type="text" id="search" placeholder="搜索名称 / 包 ID / 版本…" oninput="render()">
+        <button class="ghost" onclick="loadList()">刷新</button>
+        <button onclick="openUpload()">＋ 上传软件包</button>
+    </div>
+
+    <div id="status"></div>
+    <div class="grid" id="grid"></div>
+
+    <hr>
+    <div class="hint">
+        索引接口：<code>GET /api/index.json</code><br>
+        包列表：<code>GET /api/packages</code><br>
+        下载：<code>GET /api/download/{packageId}</code> ·
+        图标：<code>GET /icons/{packageId}.ext</code> ·
+        元数据：<code>GET /api/manifest/{packageId}</code><br>
+        删除：<code>DELETE /api/packages/{packageId}</code> ·
+        重命名：<code>POST /api/packages/{id}/rename</code> ·
+        换图标：<code>POST /api/packages/{id}/icon</code>
+    </div>
+
+    <!-- 上传弹窗 -->
+    <div class="modal-bg" id="uploadModal">
+        <div class="modal">
+            <h3>上传软件包</h3>
+            <form id="uploadForm">
+                <label>软件包 (.sdzip) *</label>
+                <input type="file" name="package" accept=".sdzip" required>
+                <label>图标（可选，与包同名）</label>
+                <input type="file" name="icon" accept="image/*">
+                <div class="row">
+                    <button type="button" class="cancel" onclick="closeModal('uploadModal')">取消</button>
+                    <button type="submit" class="primary">上传</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div class="modal-bg" id="editModal">
+        <div class="modal">
+            <h3>编辑：<span id="editName"></span></h3>
+            <label>包 ID（重命名 .sdzip 文件名）</label>
+            <input type="text" id="editId">
+            <label>替换图标（选文件后点「保存」生效）</label>
+            <input type="file" id="editIcon" accept="image/*">
+            <div class="row">
+                <button type="button" class="cancel" onclick="closeModal('editModal')">取消</button>
+                <button type="button" class="primary" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看 manifest 弹窗 -->
+    <div class="modal-bg" id="manifestModal">
+        <div class="modal">
+            <h3>manifest.json：<span id="manifestName"></span></h3>
+            <pre id="manifestBody"></pre>
+            <div class="row">
+                <button type="button" class="cancel" onclick="closeModal('manifestModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let packages = [];
+
+        function setStatus(msg, cls) { const s = document.getElementById('status'); s.textContent = msg || ''; s.className = cls || ''; }
+
+        async function loadList() {
+            setStatus('加载中…');
+            try {
+                const res = await fetch('/api/packages');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                packages = await res.json();
+                setStatus('共 ' + packages.length + ' 个软件包');
+                render();
+            } catch (e) {
+                setStatus('✗ 读取失败：' + e.message, 'err');
+            }
+        }
+
+        function humanSize(n) {
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+            return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+        }
+
+        function render() {
+            const q = document.getElementById('search').value.trim().toLowerCase();
+            const grid = document.getElementById('grid');
+            const list = packages.filter(p =>
+                !q || (p.name || '').toLowerCase().includes(q) ||
+                (p.packageId || '').toLowerCase().includes(q) ||
+                (p.version || '').toLowerCase().includes(q));
+
+            grid.innerHTML = '';
+            if (list.length === 0) {
+                grid.innerHTML = '<div class="hint" style="grid-column:1/-1">没有匹配的软件包。</div>';
+                return;
+            }
+            for (const p of list) {
+                const icon = p.iconUrl ? p.iconUrl : '';
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="top">
+                        ${icon ? `<img src="${icon}" onerror="this.style.visibility='hidden'">` : `<div style="width:48px;height:48px;border-radius:8px;background:#0f1115;flex-shrink:0"></div>`}
+                        <div>
+                            <div class="name">${p.name || p.packageId}</div>
+                            <div class="ver">v${p.version || '?'} · ${humanSize(p.size || 0)}</div>
+                        </div>
+                    </div>
+                    ${p.description ? `<div class="desc">${p.description}</div>` : ''}
+                    <div class="meta">包 ID: ${p.packageId}${p.author ? ' · ' + p.author : ''}${p.category ? ' · ' + p.category : ''}</div>
+                    <div class="acts">
+                        <button onclick="viewManifest('${p.packageId}')">查看</button>
+                        <button onclick="openEdit('${p.packageId}')">编辑</button>
+                        <button class="dl" onclick="downloadPkg('${p.packageId}')">下载</button>
+                        <button class="del" onclick="deletePkg('${p.packageId}')">删除</button>
+                    </div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        function openUpload() { document.getElementById('uploadForm').reset(); openModal('uploadModal'); }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setStatus('上传中…');
+            const fd = new FormData(e.target);
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) { setStatus('✓ 上传成功：' + data.packageId, 'ok'); closeModal('uploadModal'); loadList(); }
+                else setStatus('✗ [' + res.status + '] ' + (data.title || data.detail || data.error || '上传失败'), 'err');
+            } catch (err) { setStatus('✗ 网络错误：' + err.message, 'err'); }
+        });
+
+        async function deletePkg(id) {
+            if (!confirm('确认删除软件包「' + id + '」？此操作不可恢复。')) return;
+            setStatus('删除中…');
+            try {
+                const res = await fetch('/api/packages/' + encodeURIComponent(id), { method: 'DELETE' });
+                if (res.ok) { setStatus('✓ 已删除：' + id, 'ok'); loadList(); }
+                else { const d = await res.json().catch(() => ({})); setStatus('✗ [' + res.status + '] ' + (d.error || '删除失败'), 'err'); }
+            } catch (e) { setStatus('✗ ' + e.message, 'err'); }
+        }
+
+        function downloadPkg(id) { window.open('/api/download/' + encodeURIComponent(id), '_blank'); }
+
+        let currentEditId = null;
+        async function openEdit(id) {
+            const p = packages.find(x => x.packageId === id);
+            if (!p) return;
+            currentEditId = id;
+            document.getElementById('editName').textContent = p.name || id;
+            document.getElementById('editId').value = id;
+            document.getElementById('editIcon').value = '';
+            openModal('editModal');
+        }
+
+        async function saveEdit() {
+            if (!currentEditId) return;
+            const newId = document.getElementById('editId').value.trim();
+            const iconFile = document.getElementById('editIcon').files[0];
+            setStatus('保存中…');
+            try {
+                // 1) 重命名
+                if (newId && newId !== currentEditId) {
+                    const res = await fetch('/api/packages/' + encodeURIComponent(currentEditId) + '/rename', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ newId })
+                    });
+                    if (!res.ok) {
+                        const d = await res.json().catch(() => ({}));
+                        return setStatus('✗ 重命名失败 [' + res.status + ']：' + (d.error || ''), 'err');
+                    }
+                    currentEditId = newId;
+                }
+                // 2) 换图标
+                if (iconFile) {
+                    const fd = new FormData();
+                    fd.append('icon', iconFile);
+                    const res = await fetch('/api/packages/' + encodeURIComponent(currentEditId) + '/icon', { method: 'POST', body: fd });
+                    if (!res.ok) {
+                        const d = await res.json().catch(() => ({}));
+                        return setStatus('✗ 换图标失败 [' + res.status + ']：' + (d.title || d.detail || ''), 'err');
+                    }
+                }
+                setStatus('✓ 已保存', 'ok');
+                closeModal('editModal');
+                loadList();
+            } catch (e) { setStatus('✗ ' + e.message, 'err'); }
+        }
+
+        async function viewManifest(id) {
+            setStatus('读取 manifest…');
+            try {
+                const res = await fetch('/api/manifest/' + encodeURIComponent(id));
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const text = await res.text();
+                document.getElementById('manifestName').textContent = id;
+                document.getElementById('manifestBody').textContent = text;
+                openModal('manifestModal');
+                setStatus('');
+            } catch (e) { setStatus('✗ 读取失败：' + e.message, 'err'); }
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+        document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('show'); }));
+
+        loadList();
+    </script>
+</body>
+</html>

@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using SuperDucker.Shared;
 using SuperDucker.Shared.Data;
 using SuperDucker.Shared.Native;
@@ -117,6 +120,9 @@ public partial class SettingsDialog : UserControl
             {
                 var rawKeep = dbKeep.GetSetting("shop_package_keep_days");
                 TxtKeepDays.Text = int.TryParse(rawKeep, out var kd) && kd > 0 ? kd.ToString() : "30";
+
+                step = "ShopRepoUrls";
+                TxtRepoUrls.Text = dbKeep.GetSetting(ShopSourceFactory.RepoUrlsSettingKey) ?? "";
             }
 
             step = "DataDir";
@@ -542,11 +548,78 @@ public partial class SettingsDialog : UserControl
         }
     }
 
+    /// <summary>商店服务地址（每行一个）。即时写入设置表，下次刷新商店时生效。</summary>
+    private void TxtRepoUrls_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isLoading) return;
+        try
+        {
+            using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            ShopSourceFactory.SaveRepoUrls(db, TxtRepoUrls.Text.Split('\n'));
+            TxtStatus.Text = "商店服务地址已保存";
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"保存失败: {ex.Message}";
+        }
+    }
+
     private void BtnOpenDir_Click(object sender, RoutedEventArgs e)
     {
         var dir = DatabaseManager.GetRootDirectory();
         if (Directory.Exists(dir))
             Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+    }
+
+    /// <summary>测试已配置的商店服务地址是否可连接：对每个地址发 GET /api/index.json 探测。</summary>
+    private async void BtnTestRepo_Click(object sender, RoutedEventArgs e)
+    {
+        var urls = ShopSourceFactory.ParseRepoUrls(TxtRepoUrls.Text).ToList();
+        if (urls.Count == 0)
+        {
+            TxtRepoTestResult.Text = "请先填写至少一个服务地址。";
+            TxtRepoTestResult.Foreground = (Brush)FindResource("TextSecondaryBrush");
+            return;
+        }
+
+        BtnTestRepo.IsEnabled = false;
+        TxtRepoTestResult.Foreground = (Brush)FindResource("TextSecondaryBrush");
+        TxtRepoTestResult.Text = "正在连接…";
+        try
+        {
+            var results = new List<string>();
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            foreach (var url in urls)
+            {
+                var idxUrl = url.EndsWith("/") ? url + "api/index.json" : url + "/api/index.json";
+                try
+                {
+                    using var resp = await http.GetAsync(idxUrl);
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        var json = await resp.Content.ReadAsStringAsync();
+                        int cnt = 0;
+                        try { cnt = JsonDocument.Parse(json).RootElement.GetArrayLength(); } catch { }
+                        results.Add($"✓ {url} 已连接（{cnt} 个包）");
+                    }
+                    else
+                    {
+                        results.Add($"✗ {url} 返回 {(int)resp.StatusCode} {resp.ReasonPhrase}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    results.Add($"✗ {url} 无法连接：{ex.Message}");
+                }
+            }
+            TxtRepoTestResult.Text = string.Join("    ", results);
+            bool anyOk = results.Any(r => r.StartsWith("✓"));
+            TxtRepoTestResult.Foreground = (Brush)FindResource(anyOk ? "AccentBlueBrush" : "TextSecondaryBrush");
+        }
+        finally
+        {
+            BtnTestRepo.IsEnabled = true;
+        }
     }
 
     // ═══ About: GitHub link & Update check ═══

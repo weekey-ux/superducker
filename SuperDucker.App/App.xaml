@@ -337,13 +337,27 @@
                                                 </Path.RenderTransform>
                                             </Path>
                                         </ToggleButton>
-                                        <ContentPresenter x:Name="ContentSite"
-                                                          IsHitTestVisible="False"
-                                                          Content="{TemplateBinding SelectionBoxItem}"
-                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                                          Margin="{TemplateBinding Padding}"
-                                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                          HorizontalAlignment="Left"/>
+                                        <Grid>
+                                            <!-- 编辑模式下承载用户输入 -->
+                                            <TextBox x:Name="PART_EditableTextBox"
+                                                     Visibility="Collapsed"
+                                                     Background="Transparent"
+                                                     BorderThickness="0"
+                                                     Foreground="{TemplateBinding Foreground}"
+                                                     Padding="{TemplateBinding Padding}"
+                                                     FontSize="{TemplateBinding FontSize}"
+                                                     VerticalAlignment="Center"
+                                                     HorizontalAlignment="Stretch"
+                                                     IsReadOnly="{TemplateBinding IsReadOnly}"/>
+                                            <!-- 非编辑模式下显示选中项（绑定 ItemTemplate，避免 SelectionBoxItemTemplate 自动派生时机问题） -->
+                                            <ContentPresenter x:Name="ContentSite"
+                                                              IsHitTestVisible="False"
+                                                              Content="{TemplateBinding SelectionBoxItem}"
+                                                              ContentTemplate="{TemplateBinding ItemTemplate}"
+                                                              Margin="{TemplateBinding Padding}"
+                                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                              HorizontalAlignment="Left"/>
+                                        </Grid>
                                     </DockPanel>
                                 </Border>
                                 <!-- Popup (dropdown) -->
@@ -374,6 +388,10 @@
                                 </Trigger>
                                 <Trigger Property="IsDropDownOpen" Value="True">
                                     <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBlueBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEditable" Value="True">
+                                    <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>

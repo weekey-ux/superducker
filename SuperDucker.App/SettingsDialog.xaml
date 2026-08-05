@@ -481,6 +481,36 @@
                             </StackPanel>
                         </DockPanel>
 
+                        <!-- Shop service (repo) URLs -->
+                        <StackPanel Margin="0,0,0,10">
+                            <TextBlock Text="商店服务地址（局域网仓库）" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="每行一个服务地址（如 http://192.168.1.10:5180）。服务不可达时自动回退本地源。"
+                                       FontSize="11" Margin="0,2,0,6"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"/>
+                            <TextBox x:Name="TxtRepoUrls" Height="72" AcceptsReturn="True"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     FontSize="12" Padding="8,6"
+                                     Background="{DynamicResource BgMediumBrush}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource BgCardHoverBrush}"
+                                     TextChanged="TxtRepoUrls_TextChanged"/>
+                            <DockPanel Margin="0,8,0,0" LastChildFill="True" MinHeight="36"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                                <Button x:Name="BtnTestRepo" DockPanel.Dock="Left" Content="测试连接"
+                                        Style="{StaticResource FlatButton}" MinWidth="96"
+                                        MinHeight="32" Padding="12,4"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        Click="BtnTestRepo_Click"/>
+                                <TextBlock x:Name="TxtRepoTestResult" Margin="12,0,0,0"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </DockPanel>
+                        </StackPanel>
+
                         <!-- Open data directory -->
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">

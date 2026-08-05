@@ -60,6 +60,35 @@ public class ShopPackage
 
     /// <summary>是否已过期（AddedTime 已记录且当前 UTC 已超过 ExpiresAt）。</summary>
     public bool IsExpired => AddedTime != DateTime.MinValue && DateTime.UtcNow > ExpiresAt;
+
+    /// <summary>该软件包的来源类型：本地 localshop 或远程商店服务。</summary>
+    public PackageSourceKind SourceKind { get; set; } = PackageSourceKind.Local;
+
+    /// <summary>是否为远程来源（来自商店服务，需先下载 .sdzip 再安装/升级）。</summary>
+    public bool IsRemote => SourceKind == PackageSourceKind.Repo;
+
+    /// <summary>远程 .sdzip 的下载地址（仅远程包有效）。</summary>
+    public string? DownloadUrl { get; set; }
+
+    /// <summary>远程图标的下载地址（仅远程包有效，可为 null）。</summary>
+    public string? IconUrl { get; set; }
+
+    /// <summary>远程来源的基础地址（如 http://host:5180），用于删除远程包或拉取 manifest。仅远程包有效。</summary>
+    public string? SourceUrl { get; set; }
+
+    /// <summary>标记远程包是否已将 .sdzip 下载到本地临时文件（此时 SdzipPath 指向本地副本）。</summary>
+    public bool IsDownloaded => IsRemote && !string.IsNullOrEmpty(SdzipPath) && File.Exists(SdzipPath);
+}
+
+/// <summary>
+/// 软件包来源类型。
+/// </summary>
+public enum PackageSourceKind
+{
+    /// <summary>本地 localshop 目录中的 .sdzip 文件。</summary>
+    Local,
+    /// <summary>远程商店服务（HTTP 仓库）提供的包。</summary>
+    Repo
 }
 
 /// <summary>本地商店中一个包相对已安装应用的升级状态。</summary>

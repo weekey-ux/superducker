@@ -74,31 +74,16 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <ComboBox x:Name="ExistingEntryCombo" Grid.Column="0"
-                                          DisplayMemberPath="DisplayName"
-                                          Background="{StaticResource BgMediumBrush}"
-                                          Foreground="{StaticResource TextPrimaryBrush}"
-                                          BorderBrush="{StaticResource BgCardHoverBrush}"
-                                          Padding="10,7" FontSize="13" Height="36"
-                                          Margin="0,0,10,0"
+                                          Style="{StaticResource DarkComboBoxStyle}"
+                                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                                          Height="36" Margin="0,0,10,0"
                                           SelectionChanged="ExistingEntry_SelectionChanged"
                                           HorizontalContentAlignment="Stretch">
-                                    <ComboBox.ItemContainerStyle>
-                                        <Style TargetType="ComboBoxItem">
-                                            <Setter Property="Background" Value="#1A1A1A"/>
-                                            <Setter Property="Foreground" Value="#FFFFFF"/>
-                                            <Setter Property="Padding" Value="8,4"/>
-                                            <Setter Property="FontSize" Value="12"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ComboBoxItem">
-                                                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                                            <ContentPresenter/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ComboBox.ItemContainerStyle>
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
                                 </ComboBox>
                                 <TextBox x:Name="SearchEntryBox" Grid.Column="1"
                                          Style="{StaticResource SearchBoxStyle}"
@@ -278,42 +263,32 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="分类" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="CatBox"
-                                              Background="{StaticResource BgMediumBrush}"
-                                              Foreground="{StaticResource TextPrimaryBrush}"
-                                              BorderBrush="{StaticResource BgCardHoverBrush}"
-                                              Padding="10,7" FontSize="13" Height="36"
+                                              Style="{StaticResource DarkComboBoxStyle}"
+                                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                                              Height="36"
                                               IsEditable="True"
-                                              SelectionChanged="Category_SelectionChanged">
-                                        <ComboBox.ItemContainerStyle>
-                                            <Style TargetType="ComboBoxItem">
-                                                <Setter Property="Background" Value="#1E1E1E"/>
-                                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                <Setter Property="Padding" Value="10,4"/>
-                                                <Setter Property="FontSize" Value="12"/>
-                                            </Style>
-                                        </ComboBox.ItemContainerStyle>
-                                    </ComboBox>
+                                              SelectionChanged="Category_SelectionChanged"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="标签" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="TagsBox"
-                                              Background="{StaticResource BgMediumBrush}"
-                                              Foreground="{StaticResource TextPrimaryBrush}"
-                                              BorderBrush="{StaticResource BgCardHoverBrush}"
-                                              Padding="10,7" FontSize="13" Height="36"
+                                              Style="{StaticResource DarkComboBoxStyle}"
+                                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                                              Height="36"
                                               IsEditable="True"
-                                              SelectionChanged="TagItem_SelectionChanged">
-                                        <ComboBox.ItemContainerStyle>
-                                            <Style TargetType="ComboBoxItem">
-                                                <Setter Property="Background" Value="#1E1E1E"/>
-                                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                <Setter Property="Padding" Value="10,4"/>
-                                                <Setter Property="FontSize" Value="12"/>
-                                            </Style>
-                                        </ComboBox.ItemContainerStyle>
-                                    </ComboBox>
+                                              SelectionChanged="TagItem_SelectionChanged"/>
                                 </StackPanel>
                             </Grid>
+
+                            <!-- Row: 保留文件（升级不覆盖） -->
+                            <StackPanel Margin="0,10,0,0">
+                                <TextBlock Text="保留文件（升级时不被新包覆盖）" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox x:Name="PreserveBox" Style="{StaticResource SearchBoxStyle}"
+                                         TextWrapping="Wrap" AcceptsReturn="True" Height="46"
+                                         VerticalScrollBarVisibility="Auto" FontSize="12" Padding="10,7"/>
+                                <TextBlock Text="相对 app 目录的路径，逗号或换行分隔。支持通配符（如 data/、*.user.json）。"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

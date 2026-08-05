@@ -76,9 +76,24 @@ public partial class AddDialog : Window
         // Load existing icon preview
         if (_mode == DialogMode.App)
         {
-            // 程序模式：直接从目标路径加载图标预览
-            if (existing.TargetPath != null)
-                ShowIconPreview(existing.TargetPath);
+            // 程序模式：优先用用户自定义图标（icons/{ABBR}_custom.*），
+            // 没有再从目标 exe 提取内嵌图标；都没有则保持空。
+            var customIcon = TryFindAppCustomIcon(existing.Abbreviation);
+            if (customIcon != null)
+            {
+                _customIconPath = customIcon;
+                ShowIconPreview(customIcon);
+                TxtIconInfo.Text = Path.GetFileName(customIcon);
+            }
+            else if (existing.TargetPath != null && File.Exists(existing.TargetPath))
+            {
+                var bmp = IconHelper.ExtractToBitmapSource(existing.TargetPath);
+                if (bmp != null)
+                {
+                    IconPreview.Source = bmp;
+                    TxtIconInfo.Text = "已从程序提取";
+                }
+            }
         }
         else
         {
@@ -100,6 +115,24 @@ public partial class AddDialog : Window
 
         // Use exact filename matching (case-insensitive on Windows) instead of wildcards
         // to avoid matching a different abbreviation with the same prefix.
+        var iconsDir = WebHelper.GetIconsDirectory();
+        if (!Directory.Exists(iconsDir)) return null;
+
+        var exactName = $"{abbreviation.ToUpperInvariant()}_custom";
+        return Directory.EnumerateFiles(iconsDir)
+            .FirstOrDefault(f =>
+            {
+                var fileName = Path.GetFileNameWithoutExtension(f);
+                return fileName.Equals(exactName, StringComparison.OrdinalIgnoreCase);
+            });
+    }
+
+    /// <summary>
+    /// 在 icons/ 目录查找 ABBR_custom.* 自定义图标文件。
+    /// APP 模式编辑时复用 URL 模式的自定义图标存储路径。
+    /// </summary>
+    private string? TryFindAppCustomIcon(string abbreviation)
+    {
         var iconsDir = WebHelper.GetIconsDirectory();
         if (!Directory.Exists(iconsDir)) return null;
 

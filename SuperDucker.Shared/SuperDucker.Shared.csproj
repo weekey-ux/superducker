@@ -5,12 +5,25 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>SuperDucker.Shared</RootNamespace>
+    <!-- IconHelper.ExtractToBitmapSource 需要 WPF 成像类型
+         （System.Windows.Media.Imaging.BitmapSource / System.Windows.Interop.Imaging），
+         这些类型位于 PresentationCore / WindowsBase，必须开启 UseWPF 才会被引用。
+         注意：本库因此不可被 net8.0（非 Windows）项目引用，例如 SuperDucker.Repo。 -->
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <!-- Release: embed debug info so no separate PDB is copied into single-file publish -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+
+  <!-- 开启 UseWPF 后，SDK 的隐式 using 集合会切换为 WPF 版本，
+       其中不含 System.IO / System.Text 等常用命名空间，需在此显式补回，
+       否则 Path / File / Directory / FileStream 等类型会全部报 CS0103。 -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Text" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />

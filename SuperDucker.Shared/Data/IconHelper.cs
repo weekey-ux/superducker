@@ -107,4 +107,56 @@ public static class IconHelper
         var outputPath = Path.Combine(iconsDir, $"{abbreviation.ToUpperInvariant()}.ico");
         return ExtractAndSaveIcon(exePath, outputPath);
     }
+
+    /// <summary>
+    /// 从可执行文件直接提取图标为内存中的 BitmapSource，不落盘。
+    /// 按尺寸从大到小尝试：256 → 128 → 64 → 48 → 32。
+    /// 返回的 BitmapSource 已 Freeze，WPF 线程安全。
+    /// 成功返回 BitmapSource，失败返回 null。
+    /// </summary>
+    public static System.Windows.Media.Imaging.BitmapSource? ExtractToBitmapSource(string exePath)
+    {
+        int[] sizes = { 256, 128, 64, 48, 32 };
+
+        foreach (var size in sizes)
+        {
+            try
+            {
+                var icons = new IntPtr[1];
+                var ids = new uint[1];
+                var count = PrivateExtractIconsW(exePath, 0, size, size, icons, ids, 1, LR_DEFAULTCOLOR);
+
+                if (count > 0 && icons[0] != IntPtr.Zero)
+                {
+                    try
+                    {
+                        using var bitmap = Icon.FromHandle(icons[0]).ToBitmap();
+                        var handle = bitmap.GetHicon();
+                        try
+                        {
+                            var src = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                                handle,
+                                System.Windows.Int32Rect.Empty,
+                                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                            src.Freeze();
+                            return src;
+                        }
+                        finally
+                        {
+                            DestroyIcon(handle);
+                        }
+                    }
+                    finally
+                    {
+                        DestroyIcon(icons[0]);
+                    }
+                }
+            }
+            catch
+            {
+                // Try next size
+            }
+        }
+        return null;
+    }
 }

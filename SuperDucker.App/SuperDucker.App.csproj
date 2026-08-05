@@ -13,10 +13,10 @@
 
     <!-- 发行版本号：采用语义化版本（主版本.次版本.修订号）。
          大版本不兼容变更 → 升主版本；向后兼容新功能 → 升次版本；向后兼容缺陷修复 → 升修订号。 -->
-    <Version>1.1.0</Version>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
-    <InformationalVersion>1.1.0</InformationalVersion>
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
+    <InformationalVersion>1.2.0</InformationalVersion>
 
     <!-- 许可证：MIT（最宽松的开源许可证之一） -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

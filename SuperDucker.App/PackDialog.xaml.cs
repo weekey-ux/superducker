@@ -73,8 +73,12 @@ public partial class PackDialog : Window
                 .OrderBy(c => c)
                 .ToList();
 
-            // 填充分类下拉框（标签框保持可编辑，供用户自由输入，无需预设项）
+            // 从 localshop/ 中所有 .sdzip 的 manifest 聚合去重的标签
+            var tags = ShopManager.GetAllTagsFromShop();
+
+            // 填充分类与标签下拉框（均保持可编辑，允许用户自由输入）
             CatBox.ItemsSource = categories;
+            TagsBox.ItemsSource = tags;
         }
         catch { /* 忽略加载失败，不影响主流程 */ }
     }
@@ -280,6 +284,7 @@ public partial class PackDialog : Window
         AuthorBox.Text = "";
         HomepageBox.Text = "";
         OutputPathBox.Text = "";
+        PreserveBox.Text = "";
 
         // 清除图标预览
         _iconPath = null;
@@ -534,7 +539,8 @@ public partial class PackDialog : Window
             Categories = ParseList(CatBox.Text),
             Tags = ParseList(TagsBox.Text),
             IconPath = _iconPath,
-            Import = ImportCheckBox.IsChecked == true
+            Import = ImportCheckBox.IsChecked == true,
+            PreserveUserData = ParsePreserveList(PreserveBox.Text)
         };
 
         try
@@ -554,11 +560,11 @@ public partial class PackDialog : Window
                         StatusText.Text = "打包并导入成功！";
                         
                         // Notify parent window to refresh shop UI
-                        Dispatcher.Invoke(() =>
+                        await Dispatcher.InvokeAsync(async () =>
                         {
                             if (Owner is MainWindow mainWin)
                             {
-                                mainWin.RefreshShopUI();
+                                await mainWin.RefreshShopUIAsync();
                             }
                         });
                     }
@@ -618,7 +624,11 @@ public partial class PackDialog : Window
                 Categories = p.Categories,
                 Tags = p.Tags,
                 InstallActions = new InstallActions(),
-                UninstallActions = new UninstallActions { RemoveDir = true },
+                UninstallActions = new UninstallActions
+                {
+                    RemoveDir = true,
+                    PreserveUserData = p.PreserveUserData
+                },
                 Requirements = new PackageRequirements
                 {
                     MinWindows = "10",
@@ -893,6 +903,18 @@ public partial class PackDialog : Window
         return text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
+    /// <summary>
+    /// 解析"保留文件"输入：逗号或换行分隔，去重后返回。
+    /// </summary>
+    private static List<string> ParsePreserveList(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return new List<string>();
+        return text
+            .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     private class PackParams
     {
         public string SourceDir { get; set; } = "";
@@ -909,6 +931,7 @@ public partial class PackDialog : Window
         public List<string> Tags { get; set; } = new();
         public string? IconPath { get; set; }
         public bool Import { get; set; }
+        public List<string>? PreserveUserData { get; set; }
     }
 
     private class PackResult

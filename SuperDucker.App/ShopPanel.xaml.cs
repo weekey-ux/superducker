@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using SuperDucker.Shared;
 using SuperDucker.Shared.Data;
 using SuperDucker.Shared.Models;
 
@@ -11,6 +12,21 @@ namespace SuperDucker.App;
 
 public partial class ShopPanel : UserControl
 {
+    /// <summary>安全的版本号比较：无法解析时返回 0（视为相等）。使用 UpdateChecker 提供的语义版本解析。</summary>
+    private static int CompareVersionsSafe(string? a, string? b)
+    {
+        if (string.IsNullOrWhiteSpace(a) && string.IsNullOrWhiteSpace(b)) return 0;
+        if (string.IsNullOrWhiteSpace(a)) return -1;
+        if (string.IsNullOrWhiteSpace(b)) return 1;
+        try
+        {
+            var va = UpdateChecker.NormalizeVersion(a) ?? "0.0.0";
+            var vb = UpdateChecker.NormalizeVersion(b) ?? "0.0.0";
+            return UpdateChecker.CompareSemVer(va, vb);
+        }
+        catch { return 0; }
+    }
+
     private enum ShopTab { Available, Installed, Uninstalled }
 
     private readonly MainViewModel _vm;
@@ -32,7 +48,7 @@ public partial class ShopPanel : UserControl
         try { InitializeComponent(); }
         catch (Exception ex) { throw new Exception($"[InitComponent] {ex.GetType().Name}: {ex.Message}", ex); }
         BuildSearchBar();
-        RefreshPackages();
+        _ = RefreshPackagesAsync();
     }
 
     private void BuildSearchBar()
@@ -115,7 +131,7 @@ public partial class ShopPanel : UserControl
 
     private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshPackages();
+    private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshPackagesAsync();
 
     private void TabAvailable_Click(object sender, RoutedEventArgs e)
     {
@@ -145,7 +161,7 @@ public partial class ShopPanel : UserControl
         TabUninstalled.FontWeight = _currentTab == ShopTab.Uninstalled ? FontWeights.SemiBold : FontWeights.Normal;
     }
 
-    public void RefreshPackages()
+    public async Task RefreshPackagesAsync()
     {
         try
         {
@@ -156,7 +172,50 @@ public partial class ShopPanel : UserControl
             if (removed.Count > 0)
                 System.Diagnostics.Debug.WriteLine($"[Shop] 自动清理 {removed.Count} 个过期安装包");
 
-            _packages = ShopManager.ScanPackages(db);
+            // 合并所有来源：本地 localshop + 配置的远程商店服务。
+            // 远程源不可达时静默跳过，仅保留本地源结果。
+            var sources = ShopSourceFactory.GetSources(db);
+            var scanTasks = sources.Select(async src =>
+            {
+                try
+                {
+                    var list = await src.ScanAsync(db);
+                    if (list.Count > 0)
+                        System.Diagnostics.Debug.WriteLine($"[Shop] 来源 {src.Label ?? "本地"} 提供 {list.Count} 个包");
+                    return list;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Shop] 来源 {src.Label ?? "本地"} 扫描失败（已忽略）: {ex.Message}");
+                    return new List<ShopPackage>();
+                }
+            }).ToArray();
+            var scanned = await Task.WhenAll(scanTasks);
+            var raw = scanned.SelectMany(x => x).ToList();
+
+            // 同一软件可能在本地源与远程源同时存在（例如局域网仓库镜像了官方商店）。
+            // 去重键：Abbreviation 优先（这是 Win+R 启动键，也是数据库匹配键，最能体现"同一款软件"），
+            //         没有 abbreviation 的 fallback 到 PackageId（避免空串把全部包并到一起）。
+            // 保留"版本号更高"且"远程优先"的那一份。ShopManager.FillInstalledStates 仍会用 Abbreviation
+            // 二次匹配已装应用，所以即便去重后留下的是远程包，也不会让已装应用变成"未装"。
+            var all = raw
+                .GroupBy(p => !string.IsNullOrWhiteSpace(p.Abbreviation) ? p.Abbreviation : p.PackageId,
+                         StringComparer.OrdinalIgnoreCase)
+                .Select(g =>
+                {
+                    if (g.Count() == 1) return g.First();
+                    return g
+                        .OrderByDescending(p => CompareVersionsSafe(p.Version, string.Empty))
+                        .ThenByDescending(p => p.SourceKind == PackageSourceKind.Repo ? 1 : 0)
+                        .First();
+                })
+                .ToList();
+
+            // 远程包与本地包共用已安装状态比对，使"可升级"等状态正确显示
+            ShopManager.FillInstalledStates(all, db);
+
+            _packages = all;
         }
         catch (Exception ex)
         {
@@ -164,7 +223,6 @@ public partial class ShopPanel : UserControl
             TxtStatus.Text = $"扫描失败: {ex.Message}";
             return;
         }
-
         UpdateTabCounts();
         LoadCategories();
 
@@ -353,15 +411,30 @@ public partial class ShopPanel : UserControl
                 };
                 installBtn.Click += (_, _) => InstallPackage(pkg, installBtn);
 
-                var delLocalBtn = new Button
+                if (pkg.IsRemote)
                 {
-                    Content = "删除安装包",
-                    MinWidth = 84,
-                    Style = (Style)FindResource("FlatButton")
-                };
-                delLocalBtn.Click += (_, _) => DeleteLocalPackage(pkg);
-                actionPanel.Children.Add(installBtn);
-                actionPanel.Children.Add(delLocalBtn);
+                    var removeRepoBtn = new Button
+                    {
+                        Content = "从仓库移除",
+                        MinWidth = 84,
+                        Style = (Style)FindResource("FlatButton")
+                    };
+                    removeRepoBtn.Click += (_, _) => RemoveRemotePackage(pkg);
+                    actionPanel.Children.Add(installBtn);
+                    actionPanel.Children.Add(removeRepoBtn);
+                }
+                else
+                {
+                    var delLocalBtn = new Button
+                    {
+                        Content = "删除安装包",
+                        MinWidth = 84,
+                        Style = (Style)FindResource("FlatButton")
+                    };
+                    delLocalBtn.Click += (_, _) => DeleteLocalPackage(pkg);
+                    actionPanel.Children.Add(installBtn);
+                    actionPanel.Children.Add(delLocalBtn);
+                }
                 break;
 
             case ShopTab.Installed:
@@ -413,15 +486,30 @@ public partial class ShopPanel : UserControl
                 };
                 reinstallBtn.Click += (_, _) => ReinstallPackage(pkg, reinstallBtn);
 
-                var delLocalBtn2 = new Button
+                if (pkg.IsRemote)
                 {
-                    Content = "删除安装包",
-                    MinWidth = 84,
-                    Style = (Style)FindResource("FlatButton")
-                };
-                delLocalBtn2.Click += (_, _) => DeleteLocalPackage(pkg);
-                actionPanel.Children.Add(reinstallBtn);
-                actionPanel.Children.Add(delLocalBtn2);
+                    var removeRepoBtn2 = new Button
+                    {
+                        Content = "从仓库移除",
+                        MinWidth = 84,
+                        Style = (Style)FindResource("FlatButton")
+                    };
+                    removeRepoBtn2.Click += (_, _) => RemoveRemotePackage(pkg);
+                    actionPanel.Children.Add(reinstallBtn);
+                    actionPanel.Children.Add(removeRepoBtn2);
+                }
+                else
+                {
+                    var delLocalBtn2 = new Button
+                    {
+                        Content = "删除安装包",
+                        MinWidth = 84,
+                        Style = (Style)FindResource("FlatButton")
+                    };
+                    delLocalBtn2.Click += (_, _) => DeleteLocalPackage(pkg);
+                    actionPanel.Children.Add(reinstallBtn);
+                    actionPanel.Children.Add(delLocalBtn2);
+                }
                 break;
         }
 
@@ -446,6 +534,24 @@ public partial class ShopPanel : UserControl
             Foreground = (SolidColorBrush)FindResource("TextSecondaryBrush"),
             VerticalAlignment = VerticalAlignment.Center
         });
+        // 来源徽章：让用户一眼看出数据来自本地还是局域网商店服务。
+        // 当本地和远程存在同名包时，优先级更高的那个被保留（合并去重逻辑在 RefreshPackagesAsync）。
+        nameRow.Children.Add(new Border
+        {
+            Margin = new Thickness(8, 0, 0, 0),
+            Padding = new Thickness(6, 1, 6, 1),
+            CornerRadius = new CornerRadius(3),
+            Background = (SolidColorBrush)FindResource(
+                pkg.IsRemote ? "AccentBlueBrush" : "BgMediumBrush"),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = pkg.IsRemote ? "局域网" : "本地",
+                FontSize = 10,
+                Foreground = (SolidColorBrush)FindResource(
+                    pkg.IsRemote ? "BgDarkBrush" : "TextSecondaryBrush")
+            }
+        });
         info.Children.Add(nameRow);
 
         if (!string.IsNullOrEmpty(pkg.Description))
@@ -466,6 +572,42 @@ public partial class ShopPanel : UserControl
         return card;
     }
 
+    /// <summary>
+    /// 若软件包来自远程商店服务且尚未下载到本地，则先下载 .sdzip 到临时目录，
+    /// 并把本地路径写回 pkg.SdzipPath，使现有 InstallPackage/UpgradePackage 可复用。
+    /// 本地包或已下载的远程包直接返回。
+    /// </summary>
+    private static async Task EnsureLocalSdzipAsync(ShopPackage pkg)
+    {
+        if (!pkg.IsRemote || pkg.IsDownloaded || string.IsNullOrEmpty(pkg.DownloadUrl))
+            return;
+
+        // 用仓库 baseUrl 构造 RepoSource；DownloadSdzipAsync 仅依赖完整 DownloadUrl
+        var source = new RepoSource(pkg.SourceUrl ?? pkg.DownloadUrl);
+        var localPath = await source.DownloadSdzipAsync(pkg);
+        pkg.SdzipPath = localPath;
+    }
+
+    /// <summary>
+    /// 远程包下载的 .sdzip 位于临时目录（Temp/SuperDucker/repo/）。
+    /// 安装/升级/重装完成后清理，避免堆积。本地包不在此列。
+    /// </summary>
+    private static void CleanupRemoteTempSdzip(ShopPackage pkg)
+    {
+        if (!pkg.IsRemote || string.IsNullOrEmpty(pkg.SdzipPath)) return;
+        try
+        {
+            var repoTempDir = Path.Combine(Path.GetTempPath(), "SuperDucker", "repo");
+            var dir = Path.GetDirectoryName(pkg.SdzipPath);
+            if (dir != null && string.Equals(Path.GetFullPath(dir), Path.GetFullPath(repoTempDir), StringComparison.OrdinalIgnoreCase))
+                File.Delete(pkg.SdzipPath);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Shop] 清理远程临时包失败: {ex.Message}");
+        }
+    }
+
     private static TextBlock CreateFallbackIcon()
     {
         return new TextBlock
@@ -478,7 +620,7 @@ public partial class ShopPanel : UserControl
         };
     }
 
-    private void InstallPackage(ShopPackage pkg, Button btn)
+    private async void InstallPackage(ShopPackage pkg, Button btn)
     {
         try
         {
@@ -486,10 +628,12 @@ public partial class ShopPanel : UserControl
             btn.Content = "安装中...";
 
             using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            await EnsureLocalSdzipAsync(pkg);
             var entry = ShopManager.InstallPackage(pkg, db);
 
             if (entry != null)
             {
+                CleanupRemoteTempSdzip(pkg);
                 _vm.LoadData();
                 TxtStatus.Text = $"已安装: {pkg.Name} v{pkg.Version}";
                 UpdateTabCounts();
@@ -572,7 +716,7 @@ public partial class ShopPanel : UserControl
         }
     }
 
-    private void ReinstallPackage(ShopPackage pkg, Button btn)
+    private async void ReinstallPackage(ShopPackage pkg, Button btn)
     {
         try
         {
@@ -580,10 +724,12 @@ public partial class ShopPanel : UserControl
             btn.Content = "安装中...";
 
             using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            await EnsureLocalSdzipAsync(pkg);
             var entry = ShopManager.InstallPackage(pkg, db);
 
             if (entry != null)
             {
+                CleanupRemoteTempSdzip(pkg);
                 _vm.LoadData();
                 TxtStatus.Text = $"已重新安装: {pkg.Name} v{pkg.Version}";
                 UpdateTabCounts();
@@ -613,7 +759,7 @@ public partial class ShopPanel : UserControl
     /// <summary>
     /// 升级或覆盖重装已安装应用：高于已装版本→升级；等于/低于→重装（覆盖）。
     /// </summary>
-    private void UpgradeOrReinstallPackage(ShopPackage pkg, Button btn)
+    private async void UpgradeOrReinstallPackage(ShopPackage pkg, Button btn)
     {
         var isUpgrade = pkg.UpgradeState == ShopUpgradeState.Upgrade;
         try
@@ -622,10 +768,12 @@ public partial class ShopPanel : UserControl
             btn.Content = isUpgrade ? "升级中..." : "重装中...";
 
             using var db = new DatabaseManager(DatabaseManager.GetDefaultDbPath());
+            await EnsureLocalSdzipAsync(pkg);
             var entry = ShopManager.UpgradePackage(pkg, db);
 
             if (entry != null)
             {
+                CleanupRemoteTempSdzip(pkg);
                 _vm.LoadData();
                 TxtStatus.Text = isUpgrade
                     ? $"已升级: {pkg.Name} → v{pkg.Version}"
@@ -652,7 +800,7 @@ public partial class ShopPanel : UserControl
     /// <summary>
     /// 手动删除本地商店中的 .sdzip 安装包（不影响已安装应用）。
     /// </summary>
-    private void DeleteLocalPackage(ShopPackage pkg)
+    private async void DeleteLocalPackage(ShopPackage pkg)
     {
         var warn = pkg.IsInstalled
             ? $"确定要删除 localshop 中的安装包「{pkg.Name}」吗？\n\n已安装的应用不受影响，但将失去此版本的升级/重装来源。"
@@ -667,7 +815,7 @@ public partial class ShopPanel : UserControl
             if (ShopManager.DeleteLocalPackage(pkg, db))
             {
                 TxtStatus.Text = $"已删除安装包: {pkg.Name}";
-                RefreshPackages();
+                await RefreshPackagesAsync();
                 UpdateTabCounts();
                 RenderList();
             }
@@ -679,6 +827,39 @@ public partial class ShopPanel : UserControl
         catch (Exception ex)
         {
             TxtStatus.Text = $"删除安装包失败: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// 阶段3：从远程商店服务移除某个包（删除服务端文件）。仅对远程包可用。
+    /// 与服务端约定：仓库仅内网可达、暂不需要认证。
+    /// </summary>
+    private async void RemoveRemotePackage(ShopPackage pkg)
+    {
+        if (string.IsNullOrEmpty(pkg.SourceUrl))
+        {
+            TxtStatus.Text = "无法定位远程仓库地址";
+            return;
+        }
+
+        var result = MessageBox.Show(
+            $"确定要从商店服务（{pkg.SourceUrl}）移除「{pkg.Name}」吗？\n\n该操作会删除服务器上的安装包文件，所有客户端将无法再获取它。",
+            "从仓库移除",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            var source = new RepoSource(pkg.SourceUrl);
+            await source.DeleteRemoteAsync(pkg.PackageId);
+            TxtStatus.Text = $"已从仓库移除: {pkg.Name}";
+            await RefreshPackagesAsync();
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"移除失败: {ex.Message}";
         }
     }
 

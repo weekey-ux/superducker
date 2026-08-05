@@ -1327,14 +1327,11 @@ public partial class MainWindow : Window
     /// Refreshes the shop panel to show newly added packages.
     /// Called by PackDialog after successful package creation and import.
     /// </summary>
-    public void RefreshShopUI()
+    public async Task RefreshShopUIAsync()
     {
         if (_shopPanel != null)
         {
-            Dispatcher.Invoke(() =>
-            {
-                _shopPanel.RefreshPackages();
-            });
+            await Dispatcher.InvokeAsync(() => _shopPanel.RefreshPackagesAsync());
         }
     }
 

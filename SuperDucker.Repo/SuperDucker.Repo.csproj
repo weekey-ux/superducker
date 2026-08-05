@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SuperDucker.Repo</RootNamespace>
+    <AssemblyName>superducker-repo</AssemblyName>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <!-- Release publish: 与 superducker.exe / sd.exe 一致，自包含单文件 + 预编译(R2R) + 压缩 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Tiered PGO: 启动期训练热点路径，提升预热后吞吐 -->
+    <TieredPGO>true</TieredPGO>
+    <!-- 单文件包内剔除嵌入 PDB 符号以减小体积 -->
+    <StripSymbols>true</StripSymbols>
+    <DebugType>none</DebugType>
+    <!-- 内网服务无需全球化，减小体积 -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 >nul
 setlocal EnableDelayedExpansion
 
 REM === SuperDucker build and publish script ===
@@ -13,8 +12,10 @@ REM Before release, manually increment Version in both csproj files.
 set "ROOT=%~dp0"
 set "APP_PROJ=%ROOT%SuperDucker.App\SuperDucker.App.csproj"
 set "CLI_PROJ=%ROOT%SuperDucker.Cli\SuperDucker.Cli.csproj"
+set "REPO_PROJ=%ROOT%SuperDucker.Repo\SuperDucker.Repo.csproj"
 set "PUB_APP=%ROOT%publish\app"
 set "PUB_CLI=%ROOT%publish\cli"
+set "PUB_REPO=%ROOT%publish\repo"
 set "OBF_FLAG="
 
 REM ---- parse args ----
@@ -36,16 +37,20 @@ echo Version: %CUR_VER%  (manual SemVer bump required before release)
 echo.
 
 REM ---- Step 2: precompile (Release) sub-projects ----
-echo [1/3] Building SuperDucker.Shared ...
+echo [1/4] Building SuperDucker.Shared ...
 dotnet build "%ROOT%SuperDucker.Shared\SuperDucker.Shared.csproj" -c Release
 if errorlevel 1 goto :fail
 
-echo [2/3] Building SuperDucker.App ...
+echo [2/4] Building SuperDucker.App ...
 dotnet build "%APP_PROJ%" -c Release
 if errorlevel 1 goto :fail
 
-echo [3/3] Building SuperDucker.Cli ...
+echo [3/4] Building SuperDucker.Cli ...
 dotnet build "%CLI_PROJ%" -c Release
+if errorlevel 1 goto :fail
+
+echo [4/4] Building SuperDucker.Repo ...
+dotnet build "%REPO_PROJ%" -c Release
 if errorlevel 1 goto :fail
 
 REM ---- Step 3: publish (single-file, self-contained) to publish\, replacing old ----
@@ -58,11 +63,16 @@ echo [Publish] sd.exe -^> publish\cli
 dotnet publish "%CLI_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true %OBF_FLAG% -o "%PUB_CLI%"
 if errorlevel 1 goto :fail
 
+echo [Publish] superducker-repo.exe -^> publish\repo
+dotnet publish "%REPO_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true %OBF_FLAG% -o "%PUB_REPO%"
+if errorlevel 1 goto :fail
+
 echo.
 echo ============ Done ============
 echo Version %CUR_VER% published%OBF_FLAG%:
 echo   - %PUB_APP%\superducker.exe
 echo   - %PUB_CLI%\sd.exe
+echo   - %PUB_REPO%\superducker-repo.exe   (LAN shop service, listens on http://0.0.0.0:5180)
 goto :eof
 
 :fail
