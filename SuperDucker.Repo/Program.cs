@@ -154,7 +154,7 @@ app.MapPost("/api/upload", async (HttpRequest req) =>
             return Results.Json(new { title = "bad_request", detail = "invalid multipart content-type" }, statusCode: 400);
 
         // 从 content-type 提取 boundary（去掉引号），无需依赖 internal 的 MultipartRequestHelper
-        var boundary = mediaType!.Boundary.Value.ToString().Trim('"').Trim();
+        var boundary = mediaType!.Boundary.ToString().Trim('"').Trim();
         if (string.IsNullOrEmpty(boundary))
             return Results.Json(new { title = "bad_request", detail = "missing multipart boundary" }, statusCode: 400);
 
@@ -172,7 +172,7 @@ app.MapPost("/api/upload", async (HttpRequest req) =>
                 continue;
             }
             var name = contentDisposition!.Name.ToString().Trim('"').Trim().ToLowerInvariant();
-            var fileName = contentDisposition.FileName.Value.ToString().Trim('"');
+            var fileName = contentDisposition.FileName.ToString().Trim('"');
 
             if (string.IsNullOrEmpty(name))
             {
@@ -253,8 +253,9 @@ app.MapGet("/api/packages", () =>
 // === API：重命名包（移动 .sdzip 及同名图标，packageId 即文件名） ===
 app.MapPost("/api/packages/{packageId}/rename", (string packageId, RenameRequest body) =>
 {
-    packageId = SanitizeId(packageId);
-    if (packageId is null) return Results.BadRequest(new { error = "invalid_package_id" });
+    var sid = SanitizeId(packageId);
+    if (sid is null) return Results.BadRequest(new { error = "invalid_package_id" });
+    packageId = sid;
 
     var newId = SanitizeId(body?.NewId);
     if (newId is null || newId == packageId)
@@ -281,8 +282,9 @@ app.MapPost("/api/packages/{packageId}/rename", (string packageId, RenameRequest
 // === API：替换包图标（multipart 单文件，覆盖 wwwroot/icons/{id}.ext） ===
 app.MapPost("/api/packages/{packageId}/icon", async (string packageId, HttpRequest req) =>
 {
-    packageId = SanitizeId(packageId);
-    if (packageId is null) return Results.BadRequest(new { error = "invalid_package_id" });
+    var sid = SanitizeId(packageId);
+    if (sid is null) return Results.BadRequest(new { error = "invalid_package_id" });
+    packageId = sid;
 
     var destPkg = Path.Combine(shopDir, packageId + ".sdzip");
     if (!File.Exists(destPkg)) return Results.NotFound(new { error = "package_not_found" });
@@ -295,7 +297,7 @@ app.MapPost("/api/packages/{packageId}/icon", async (string packageId, HttpReque
         if (!req.HasFormContentType || !MediaTypeHeaderValue.TryParse(req.ContentType, out var mediaType) || mediaType is null)
             return Results.Json(new { title = "bad_request", detail = "expected multipart/form-data" }, statusCode: 400);
 
-        var boundary = mediaType!.Boundary.Value.ToString().Trim('"').Trim();
+        var boundary = mediaType!.Boundary.ToString().Trim().Trim('"').Trim();
         if (string.IsNullOrEmpty(boundary))
             return Results.Json(new { title = "bad_request", detail = "missing multipart boundary" }, statusCode: 400);
 
@@ -308,7 +310,7 @@ app.MapPost("/api/packages/{packageId}/icon", async (string packageId, HttpReque
         {
             if (!ContentDispositionHeaderValue.TryParse(part.ContentDisposition, out var cd)) { await DrainStreamAsync(part.Body, ct); continue; }
             var name = cd!.Name.ToString().Trim('"').Trim().ToLowerInvariant();
-            var fileName = cd.FileName.Value.ToString().Trim('"');
+            var fileName = cd.FileName.ToString().Trim('"');
             if (name != "icon" || string.IsNullOrEmpty(fileName)) { await DrainStreamAsync(part.Body, ct); continue; }
 
             var iconExt = Path.GetExtension(fileName).ToLowerInvariant();
