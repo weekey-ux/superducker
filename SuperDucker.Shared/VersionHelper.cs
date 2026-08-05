@@ -11,7 +11,7 @@ public static class VersionHelper
 {
     /// <summary>
     /// 获取宿主应用（即最终用户启动的 EXE）的版本号字符串（格式：主.次.修订）。
-    /// 例如程序集版本 1.1.0.0 返回 "1.1.0"。
+    /// 例如程序集版本 1.2.0.0 返回 "1.2.0"。
     ///
     /// 实现要点：直接调用 <see cref="Assembly.GetExecutingAssembly"/> 在类库中拿到的是
     /// <c>SuperDucker.Shared.dll</c> 自身的版本（默认 1.0.0），而不是调用方 App 的版本，
@@ -19,7 +19,7 @@ public static class VersionHelper
     ///
     /// 修复策略：优先取 <see cref="Assembly.GetEntryAssembly"/>（即进程的入口 EXE，
     /// 对 WPF 应用就是 SuperDucker.App.exe），托管测试或动态加载宿主为 null 时再回退
-    /// 到调用方程序集。任何异常最后回退到字符串 "1.1.0"。
+    /// 到调用方程序集。任何异常最后回退到字符串 "1.2.0"。
     /// </summary>
     public static string GetVersion()
     {
@@ -46,6 +46,6 @@ public static class VersionHelper
             // 任何反射异常都吞掉，避免 UI 加载版本时崩溃
         }
 
-        return "1.1.0";
+        return "1.2.0";
     }
 }
