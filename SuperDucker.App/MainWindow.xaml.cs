@@ -23,6 +23,10 @@ public partial class MainWindow : Window
     private SystemTrayManager? _trayManager;
     private bool _isExiting;
 
+    // 列表模式搜索框聚焦相关
+    private TextBox? _searchBox;
+    private bool _focusSearchOnShow;
+
     // 自动隐藏相关
     private DispatcherTimer? _autoHideTimer;
     private bool _isMouseOverWindow = true;
@@ -89,8 +93,9 @@ public partial class MainWindow : Window
         RebuildContent();
         ApplyTheme();
 
-        // Wire up IsVisibleChanged after window is fully loaded
+        // Wire up IsVisibleChanged / Activated after window is fully loaded
         IsVisibleChanged += Window_IsVisibleChanged;
+        Activated += Window_Activated;
 
         // 应用持久化的"阻止系统睡眠"请求（UI 线程已就绪，作为二次保险）
         VM.ApplyPersistedPowerState();
@@ -117,12 +122,42 @@ public partial class MainWindow : Window
                 _isMouseOverWindow = true;
                 ResetAutoHideTimer();
             }
+
+            // List mode: remember to focus search box once the window is activated,
+            // so hotkey/tray/single-instance activation puts the cursor right in the filter.
+            _focusSearchOnShow = true;
         }
         else
         {
             // Window just became hidden — stop auto-hide timer
             StopAutoHideTimer();
+            _focusSearchOnShow = false;
         }
+    }
+
+    private void Window_Activated(object? sender, EventArgs e)
+    {
+        if (_focusSearchOnShow && VM.IsListView)
+        {
+            FocusSearchBox();
+            _focusSearchOnShow = false;
+        }
+    }
+
+    /// <summary>
+    /// Moves keyboard focus to the list-mode search box and selects existing text,
+    /// allowing the user to type a new query immediately after the window is shown.
+    /// </summary>
+    private void FocusSearchBox()
+    {
+        if (_searchBox == null || !VM.IsListView) return;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_searchBox == null) return;
+            _searchBox.Focus();
+            Keyboard.Focus(_searchBox);
+            _searchBox.CaretIndex = _searchBox.Text?.Length ?? 0;
+        }, DispatcherPriority.Input);
     }
 
     private bool _isClosing = false;
@@ -477,6 +512,7 @@ public partial class MainWindow : Window
 
     private UIElement BuildGridView()
     {
+        _searchBox = null;
         var container = new DockPanel();
         container.ContextMenu = BuildContentContextMenu();
 
@@ -522,6 +558,7 @@ public partial class MainWindow : Window
             Style = (Style)FindResource("SearchBoxStyle"),
             Margin = new Thickness(12, 8, 12, 0)
         };
+        _searchBox = searchBox;
         searchBox.SetBinding(TextBox.TextProperty,
             new Binding("SearchText") { Source = VM, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
 
@@ -554,6 +591,9 @@ public partial class MainWindow : Window
             Padding = new Thickness(8, 4, 8, 8),
             AllowDrop = true
         };
+        ScrollViewer.SetHorizontalScrollBarVisibility(listView, ScrollBarVisibility.Disabled);
+        ScrollViewer.SetVerticalScrollBarVisibility(listView, ScrollBarVisibility.Auto);
+        ScrollViewer.SetCanContentScroll(listView, false);
         listView.DragOver += Content_DragOver;
         listView.Drop += Content_Drop;
         listView.ItemContainerStyle = new Style(typeof(ListViewItem));
@@ -1067,6 +1107,7 @@ public partial class MainWindow : Window
             bool alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
             VM.LaunchItem(item, runAsAdmin: alt);
             CheckAutoHideAfterLaunch();
+            e.Handled = true;
         }
     }
 
@@ -1082,6 +1123,7 @@ public partial class MainWindow : Window
             bool alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
             VM.LaunchItem(item, runAsAdmin: alt);
             CheckAutoHideAfterLaunch();
+            e.Handled = true;
         }
     }
 
@@ -1093,6 +1135,20 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
             VM.ShowFriendlyNames = true;
+
+        // List mode: if filtering leaves exactly one visible item, press Enter to launch it.
+        // Honors the same auto-hide-after-launch setting as click/double-click.
+        if (e.Key == Key.Enter && VM.IsListView)
+        {
+            var visible = VM.Items.Where(i => i.IsVisible).ToList();
+            if (visible.Count == 1)
+            {
+                bool alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+                VM.LaunchItem(visible[0], runAsAdmin: alt);
+                CheckAutoHideAfterLaunch();
+                e.Handled = true;
+            }
+        }
     }
 
     private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
@@ -1479,4 +1535,23 @@ public class BoolToCollapse : IValueConverter
         => value is bool b && b ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object value, Type t, object p, CultureInfo c)
         => value is Visibility v && v == Visibility.Visible;
+}
+
+/// <summary>
+/// true -> GridLength(120, Pixel); false -> GridLength(0, Pixel).
+/// Used to collapse the vertical tab column in list view while keeping content intact.
+/// </summary>
+public class BoolToGridWidth : IValueConverter
+{
+    public object Convert(object value, Type t, object p, CultureInfo c)
+    {
+        bool show = value is bool b && b;
+        double width = 120;
+        if (p is string s && double.TryParse(s, System.Globalization.NumberStyles.Any, c, out var parsed))
+            width = parsed;
+        return new GridLength(show ? width : 0, GridUnitType.Pixel);
+    }
+
+    public object ConvertBack(object value, Type t, object p, CultureInfo c)
+        => value is GridLength g && g.Value > 0;
 }

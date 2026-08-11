@@ -63,6 +63,17 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
 
     // ═══ 集合 ═══
     public ObservableCollection<TabViewModel> Tabs { get; } = new();
+
+    /// <summary>
+    /// 界面实际绑定的 Tab 集合。列表模式下只保留内置"全部"页（搜索靠关键词全局过滤，
+    /// 子分类 Tab 会割裂检索结果），网格模式下与 Tabs 一致。
+    /// 集合内元素与 Tabs 是同一引用，因此右键/移动/重命名等操作均不影响。
+    /// </summary>
+    public ObservableCollection<TabViewModel> DisplayTabs { get; } = new();
+
+    /// <summary>切换到列表模式前选中的子分类 Tab（用于切回网格时恢复上下文）。</summary>
+    private TabViewModel? _tabBeforeList;
+
     public ObservableCollection<PanelItemViewModel> Items { get; } = new();
 
     // 缓存全部应用/网址，便于按标签页进行过滤
@@ -164,6 +175,36 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
                 PropertyChanged?.Invoke(this, new(nameof(CurrentViewMode)));
                 PropertyChanged?.Invoke(this, new(nameof(IsGridView)));
                 PropertyChanged?.Invoke(this, new(nameof(IsListView)));
+                PropertyChanged?.Invoke(this, new(nameof(ShowTabBar)));
+
+                // 列表模式：搜索靠关键词全局过滤，只保留"全部"页。
+                // 记住当前子分类，切回网格时恢复上下文。
+                if (_viewMode == ViewMode.List)
+                {
+                    if (SelectedTab?.IsBuiltIn != true)
+                        _tabBeforeList = SelectedTab;
+                    EnsureBuiltInAllTab();
+                    RebuildDisplayTabs();
+                    SelectedTab = DisplayTabs.FirstOrDefault();
+                }
+                else
+                {
+                    EnsureBuiltInAllTab();
+                    RebuildDisplayTabs();
+                    // 切回网格：优先恢复列表模式前选中的子分类，否则回到第一个可用 Tab。
+                    // 若设置隐藏"全部"，则恢复目标不能是内置"全部" Tab。
+                    var restore = _tabBeforeList != null && (!_tabBeforeList.IsBuiltIn || !_hideAllTab)
+                        ? Tabs.FirstOrDefault(t => t == _tabBeforeList)
+                        : null;
+                    SelectedTab = restore ?? Tabs.FirstOrDefault(t => !t.IsBuiltIn || !_hideAllTab);
+                    _tabBeforeList = null;
+                }
+
+                // Re-apply the current search filter so the freshly rebuilt view shows the
+                // correct set of items. Without this, list-mode filtering leaves items
+                // collapsed and hides tiles when switching back to grid mode.
+                RefreshItems();
+
                 _db.SetSetting("view_mode", value.ToString());
             }
         }
@@ -171,6 +212,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
 
     public bool IsGridView => _viewMode == ViewMode.Grid;
     public bool IsListView => _viewMode == ViewMode.List;
+
+    /// <summary>
+    /// 是否显示顶部/左侧 Tab 条。列表模式下只有「全部」页且依赖关键词全局检索，
+    /// 隐藏 Tab 条让界面更干净；网格模式保持显示以便切换分类。
+    /// </summary>
+    public bool ShowTabBar => _viewMode == ViewMode.Grid;
 
     public bool IsTabHorizontal
     {
@@ -709,9 +756,9 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         // User tabs
         var userTabs = _db.GetAllTabs();
 
-        // Built-in "全部" tab (hidden when requested, but always kept if no user tabs exist)
-        if (!_hideAllTab || userTabs.Count == 0)
-            Tabs.Add(new TabViewModel(-1, "全部", isBuiltIn: true));
+        // Built-in "全部" tab: kept in list mode (no other tabs shown), otherwise controlled
+        // by HideAllTab setting. EnsureBuiltInAllTab handles both cases.
+        EnsureBuiltInAllTab();
 
         foreach (var tab in userTabs)
             Tabs.Add(new TabViewModel(tab.Id, tab.Name, isBuiltIn: false, tab.SortOrder));
@@ -723,7 +770,58 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
             ? Tabs.FirstOrDefault(t => t.Id == previousTabId)
             : null) ?? Tabs.FirstOrDefault();
 
+        RebuildDisplayTabs();
         NotifyCounts();
+    }
+
+    /// <summary>
+    /// 根据当前视图模式确保内置"全部" Tab 存在或不存在。
+    /// 列表模式必须始终保留"全部"；网格模式按 <see cref="HideAllTab"/> 设置处理。
+    /// </summary>
+    private void EnsureBuiltInAllTab()
+    {
+        var all = Tabs.FirstOrDefault(t => t.IsBuiltIn);
+        if (_viewMode == ViewMode.List)
+        {
+            if (all == null)
+            {
+                var vm = new TabViewModel(-1, "全部", isBuiltIn: true);
+                Tabs.Insert(0, vm);
+            }
+        }
+        else // Grid mode
+        {
+            if (_hideAllTab && all != null)
+            {
+                Tabs.Remove(all);
+                if (SelectedTab == all)
+                    SelectedTab = null;
+            }
+            else if (!_hideAllTab && all == null)
+            {
+                Tabs.Insert(0, new TabViewModel(-1, "全部", isBuiltIn: true));
+            }
+        }
+    }
+
+    /// <summary>
+    /// 根据当前视图模式重建界面绑定的 Tab 集合。
+    /// 列表模式只保留内置"全部"页（搜索靠关键词全局过滤，子分类无意义）；
+    /// 网格模式与完整 Tabs 一致。元素引用与 Tabs 共享，操作逻辑不受影响。
+    /// </summary>
+    private void RebuildDisplayTabs()
+    {
+        DisplayTabs.Clear();
+        if (CurrentViewMode == ViewMode.List)
+        {
+            var all = Tabs.FirstOrDefault(t => t.IsBuiltIn);
+            if (all != null) DisplayTabs.Add(all); // 列表模式始终保留"全部"，否则无页可显示
+        }
+        else
+        {
+            foreach (var tab in Tabs)
+                DisplayTabs.Add(tab);
+        }
     }
 
     private void RefreshItems()
@@ -916,6 +1014,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         var tab = _db.AddTab(new TabEntry { Name = name, SortOrder = Tabs.Count });
         Tabs.Add(new TabViewModel(tab.Id, tab.Name, isBuiltIn: false));
+        RebuildDisplayTabs();
     }
 
     public void RenameTab(TabViewModel tab, string newName)
@@ -929,6 +1028,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         if (tab.IsBuiltIn) return;
         _db.DeleteTab(tab.Id);
         Tabs.Remove(tab);
+        RebuildDisplayTabs();
         if (SelectedTab == tab || SelectedTab == null)
             SelectedTab = Tabs.FirstOrDefault();
         else

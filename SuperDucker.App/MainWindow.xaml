@@ -23,6 +23,78 @@
     <Window.Resources>
         <local:BoolToVis x:Key="BV"/>
         <local:BoolToCollapse x:Key="BC"/>
+        <local:BoolToGridWidth x:Key="BGW"/>
+
+        <!-- Modern, minimal scrollbar style to match dark theme -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid SnapsToDevicePixels="true" Background="Transparent">
+                            <Track x:Name="PART_Track" IsEnabled="true"
+                                   IsDirectionReversed="true">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Style>
+                                            <Style TargetType="Thumb">
+                                                <Setter Property="Background" Value="{DynamicResource AccentBlueBrush}"/>
+                                                <Setter Property="Opacity" Value="0.35"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    CornerRadius="4"
+                                                                    SnapsToDevicePixels="True"/>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Thumb.Style>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter Property="Height" Value="8"/>
+                                <Setter Property="MinWidth" Value="0"/>
+                                <Setter TargetName="PART_Track" Property="Track.IsDirectionReversed" Value="false"/>
+                            </Trigger>
+                            <Trigger Property="Orientation" Value="Vertical">
+                                <Setter Property="Width" Value="8"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="PART_Track" Property="Track.Thumb">
+                                    <Setter.Value>
+                                        <Thumb>
+                                            <Thumb.Style>
+                                                <Style TargetType="Thumb">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentBlueBrush}"/>
+                                                    <Setter Property="Opacity" Value="0.6"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Thumb">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        CornerRadius="4"
+                                                                        SnapsToDevicePixels="True"/>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Thumb.Style>
+                                        </Thumb>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Shared item template for grid tiles -->
         <DataTemplate x:Key="GridItemTemplate">
@@ -159,9 +231,10 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <Border Grid.Row="0" BorderBrush="{DynamicResource BgCardBrush}" BorderThickness="0,0,0,1">
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource BgCardBrush}" BorderThickness="0,0,0,1"
+                            Visibility="{Binding ShowTabBar, Converter={StaticResource BV}}">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                            <ItemsControl x:Name="HTabItems" ItemsSource="{Binding Tabs}">
+                            <ItemsControl x:Name="HTabItems" ItemsSource="{Binding DisplayTabs}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <StackPanel Orientation="Horizontal"/>
@@ -197,13 +270,14 @@
                 <!-- Vertical layout: tabs on left -->
                 <Grid x:Name="VerticalLayout" Visibility="{Binding IsTabVertical, Converter={StaticResource BV}}">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="{Binding ShowTabBar, Converter={StaticResource BGW}, ConverterParameter=120}"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" BorderBrush="{DynamicResource BgCardBrush}" BorderThickness="0,0,1,0">
+                    <Border Grid.Column="0" BorderBrush="{DynamicResource BgCardBrush}" BorderThickness="0,0,1,0"
+                            Visibility="{Binding ShowTabBar, Converter={StaticResource BV}}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
-                                <ItemsControl x:Name="VTabItems" ItemsSource="{Binding Tabs}">
+                                <ItemsControl x:Name="VTabItems" ItemsSource="{Binding DisplayTabs}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Content="{Binding Name}" Style="{StaticResource TabButtonVerticalStyle}"

@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>SuperDucker.Repo</RootNamespace>
     <AssemblyName>superducker-repo</AssemblyName>
-    <Version>1.2.2</Version>
+    <Version>1.2.3</Version>
     <AssemblyVersion>1.2.2.0</AssemblyVersion>
     <FileVersion>1.2.2.0</FileVersion>
   </PropertyGroup>
