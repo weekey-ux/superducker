@@ -11,9 +11,6 @@
 
     <!-- 发行版本号：与 SuperDucker.App 保持一致（语义化版本）。 -->
     <Version>1.2.3</Version>
-    <AssemblyVersion>1.2.2.0</AssemblyVersion>
-    <FileVersion>1.2.2.0</FileVersion>
-    <InformationalVersion>1.2.2</InformationalVersion>
 
     <!-- 许可证：MIT（最宽松的开源许可证之一） -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
