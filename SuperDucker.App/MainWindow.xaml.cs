@@ -488,8 +488,8 @@ public partial class MainWindow : Window
             Background = Brushes.Transparent
         };
         items.ItemsPanel = (ItemsPanelTemplate)System.Windows.Markup.XamlReader.Parse(
-            "<ItemsPanelTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
-            "xmlns:local='clr-namespace:SuperDucker.App'><local:CenteredWrapPanel /></ItemsPanelTemplate>");
+            "<ItemsPanelTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>" +
+            "<WrapPanel Orientation='Horizontal' HorizontalAlignment='Stretch' /></ItemsPanelTemplate>");
         items.ItemTemplate = (DataTemplate)FindResource("GridItemTemplate");
         items.DragOver += Content_DragOver;
         items.Drop += Content_Drop;

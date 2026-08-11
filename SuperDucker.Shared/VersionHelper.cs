@@ -11,7 +11,7 @@ public static class VersionHelper
 {
     /// <summary>
     /// 获取宿主应用（即最终用户启动的 EXE）的版本号字符串（格式：主.次.修订）。
-    /// 例如程序集版本 1.2.1.0 返回 "1.2.1"。
+    /// 例如程序集版本 1.2.2.0 返回 "1.2.2"。
     ///
     /// 实现要点：直接调用 <see cref="Assembly.GetExecutingAssembly"/> 在类库中拿到的是
     /// <c>SuperDucker.Shared.dll</c> 自身的版本（默认 1.0.0），而不是调用方 App 的版本，
@@ -46,6 +46,6 @@ public static class VersionHelper
             // 任何反射异常都吞掉，避免 UI 加载版本时崩溃
         }
 
-        return "1.2.1";
+        return "1.2.2";
     }
 }
