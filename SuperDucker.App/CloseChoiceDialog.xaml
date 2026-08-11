@@ -26,7 +26,7 @@
                     <Button DockPanel.Dock="Right" Content="&#x2715;" Width="30" Height="24"
                             Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
                             BorderThickness="0" Click="CloseDialog_Click" Cursor="Hand"/>
-                    <TextBlock Text="&#x8D85;&#x7EA7;&#x6E17;&#x6C34;&#x5458;" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="&#x8D85;&#x7EA7;&#x6F5C;&#x6C34;&#x5458;" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                 </DockPanel>
@@ -59,7 +59,7 @@
                            TextWrapping="Wrap">
                     <Run Text="&#x70B9;&#x51FB;&#x300C;&#x6700;&#x5C0F;&#x5316;&#x5230;&#x6258;&#x76D8;&#x300D;&#x7F29;&#x5C0F;&#x5230;&#x7CFB;&#x7EDF;&#x901A;&#x77E5;&#x533A;"/>
                     <LineBreak/>
-                    <Run Text="&#x70B9;&#x51FB;&#x300C;&#x9000;&#x51FA;&#x7A0B;&#x5E8F;&#x300D;&#x5173;&#x95ED; &#x8D85;&#x7EA7;&#x6E17;&#x6C34;&#x5458;"/>
+                    <Run Text="&#x70B9;&#x51FB;&#x300C;&#x9000;&#x51FA;&#x7A0B;&#x5E8F;&#x300D;&#x5173;&#x95ED; &#x8D85;&#x7EA7;&#x6F5C;&#x6C34;&#x5458;"/>
                 </TextBlock>
             </StackPanel>
         </DockPanel>

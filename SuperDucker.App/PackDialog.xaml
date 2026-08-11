@@ -37,7 +37,7 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
-                    <TextBlock Text="&#x8D85;&#x7EA7;&#x6E17;&#x6C34;&#x5458; 打包工具" FontSize="15" FontWeight="SemiBold"
+                    <TextBlock Text="&#x8D85;&#x7EA7;&#x6F5C;&#x6C34;&#x5458; 打包工具" FontSize="15" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
             </Border>
