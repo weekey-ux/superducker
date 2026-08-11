@@ -82,6 +82,9 @@ public partial class MainWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // 先恢复上次保存的窗口尺寸，再按位置模式摆放，
+        // 这样居中/跟随鼠标时也能基于用户调整过的大小定位。
+        RestoreWindowSize();
         ApplyWindowPosition();
         RebuildContent();
         ApplyTheme();
@@ -138,9 +141,8 @@ public partial class MainWindow : Window
 
         try
         {
-            // Save position if using last-position mode
-            if (VM.WindowPosition == 2)
-                SaveWindowPosition();
+            // 始终保存窗口大小与位置（位置在“上次位置”模式下才读取，但尺寸始终恢复）
+            SaveWindowBounds();
 
             // Alt+F4 or system close — ask the user
             CloseButton_Click(sender!, new RoutedEventArgs());
@@ -253,6 +255,28 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// 从 last_window_pos 恢复窗口尺寸（不包含位置），
+    /// 与位置模式无关，启动时始终调用。
+    /// </summary>
+    private void RestoreWindowSize()
+    {
+        using var db = new SuperDucker.Shared.Data.DatabaseManager(SuperDucker.Shared.Data.DatabaseManager.GetDefaultDbPath());
+        var posStr = db.GetSetting("last_window_pos");
+        if (string.IsNullOrEmpty(posStr)) return;
+
+        var parts = posStr.Split(',');
+        if (parts.Length != 4) return;
+        if (!double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var w)) return;
+        if (!double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out var h)) return;
+
+        if (w >= MinWidth && h >= MinHeight)
+        {
+            Width = w;
+            Height = h;
+        }
+    }
+
     private void CenterOnScreen()
     {
         var screen = SystemParameters.WorkArea;
@@ -283,7 +307,7 @@ public partial class MainWindow : Window
         return new Point(point.X, point.Y);
     }
 
-    private void SaveWindowPosition()
+    private void SaveWindowBounds()
     {
         using var db = new SuperDucker.Shared.Data.DatabaseManager(SuperDucker.Shared.Data.DatabaseManager.GetDefaultDbPath());
         var posStr = FormattableString.Invariant($"{Left},{Top},{ActualWidth},{ActualHeight}");
@@ -318,8 +342,6 @@ public partial class MainWindow : Window
 
         Left = x;
         Top = y;
-        if (w >= MinWidth) Width = w;
-        if (h >= MinHeight) Height = h;
         return true;
     }
 
@@ -466,7 +488,8 @@ public partial class MainWindow : Window
             Background = Brushes.Transparent
         };
         items.ItemsPanel = (ItemsPanelTemplate)System.Windows.Markup.XamlReader.Parse(
-            "<ItemsPanelTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><WrapPanel Orientation='Horizontal'/></ItemsPanelTemplate>");
+            "<ItemsPanelTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
+            "xmlns:local='clr-namespace:SuperDucker.App'><local:CenteredWrapPanel /></ItemsPanelTemplate>");
         items.ItemTemplate = (DataTemplate)FindResource("GridItemTemplate");
         items.DragOver += Content_DragOver;
         items.Drop += Content_Drop;

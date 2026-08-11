@@ -1,6 +1,6 @@
 # SuperDucker（超级潜水员）
 
-> 绿色软件启动器 · 版本 **1.2.0**
+> 绿色软件启动器 · 版本 **1.2.1**
 
 SuperDucker（中文名「超级潜水员」）是一款 Windows 平台下的**便携式（绿色）软件快速启动器**。
 它借鉴 macOS Spotlight / Alfred 的理念：通过简短的**缩写** + `Win+R`，瞬间启动你常用的程序或网址。
@@ -181,6 +181,7 @@ dotnet publish SuperDucker.Cli/SuperDucker.Cli.csproj -c Release -r win-x64 --se
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.2.1 | 2026-08-11 | 修复窗口体验问题：① 重启后自动恢复上次窗口尺寸（与位置模式解耦，居中/跟随鼠标模式下也会恢复用户调整过的大小）；② 修复默认窗口尺寸下主面板左右边距不对称的问题——新增 `CenteredWrapPanel`，让 `WrapPanel` 每一行在可用宽度内水平居中，避免右侧留白明显大于左侧。 |
 | 1.2.0 | 2026-08-05 | 发行前全方位代码检查与改造：① 重构 `SuperDucker.Repo/Program.cs` 图标处理逻辑——提取共享 `IconExtensions` 常量数组与 `DeleteIconsFor`/`MoveIconsFor` 辅助方法，消除 6 处内联扩展名数组与 3 处重复删除/迁移逻辑，`IsIconExtension` 改用共享数组判断；② 修正 `ShopManager.cs` 一处 XML 注释错位（缺 `<summary>` 开头）；③ 明确外部资源现状：`wwwroot/index.html` 管理页纯手写 CSS、零 CDN/字体/JS 外部依赖，已满足「本地化部署」要求；④ 版本号统一升至 1.2.0（App/Cli csproj，Repo 共享同一语义版本）；⑤ README 修正项目结构描述（`DpiHelper`/`ThemePreset` 实际位于 `Shared` 根、`WindowHelper`/`PowerManager` 位于 `Native/`、`Helpers/` 目录不存在），并新增「局域网商店服务（SuperDucker.Repo）」模块说明与接口一览。 |
 | 1.1.0 | 2026-08-03 | 发行前全面规范化与优化：① 全量中文注释规范化（Native/Models/Helpers/Manager 等核心类与方法摘要翻译为中文，超大文件补充关键类摘要）；② 修复 .github CI 在 Linux 上构建 WPF 失效的问题（`ubuntu-latest` → `windows-latest`）；③ 清理 MainWindow 搜索框 placeholder 可见性重复赋值等冗余代码；④ 版本号统一升至 1.1.0（App/Cli csproj + VersionHelper 回退值）；⑤ 明确外部资源现状：程序采用离线优先设计，无运行时 CDN/JS/CSS 外部依赖，favicon 抓取仅用目标站点自身图标并本地缓存；⑥ README 版本记录与标题同步更新。 |
 | 1.0.0 | 2026-07-30 | 正式发行版：版本号切换为语义化版本（SemVer，主.次.修订）；标题栏与设置页统一显示版本号；抽取 `FormatSize` 到 `FileHelper` 共享以消除重复；删除死代码 `GetVersionString` 并修正 `PackDialog` 注释瑕疵；清理根目录冗余文件；补充并规范核心代码中文注释；集成可开关的 Obfuscar 混淆（`builder.bat -obfuscate`）。 |

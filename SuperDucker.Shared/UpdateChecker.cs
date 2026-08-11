@@ -9,8 +9,8 @@ namespace SuperDucker.Shared;
 /// 更新检查结果。
 /// </summary>
 /// <param name="HasUpdate">是否存在比当前版本更新的发行版。</param>
-/// <param name="CurrentVersion">本地当前版本字符串（如 "1.2.0"，不带 v 前缀）。</param>
-/// <param name="LatestVersion">远端最新版本字符串（如 "1.2.0"，不带 v 前缀）。</param>
+/// <param name="CurrentVersion">本地当前版本字符串（如 "1.2.1"，不带 v 前缀）。</param>
+/// <param name="LatestVersion">远端最新版本字符串（如 "1.2.1"，不带 v 前缀）。</param>
 /// <param name="ReleaseUrl">最新发行版的 Release 页面 URL（用于打开浏览器下载）。</param>
 /// <param name="ReleaseNotes">发行版正文（Markdown 原文），可能为 null 或空。</param>
 /// <param name="ErrorMessage">出错时的错误信息；成功时为 null。</param>
@@ -67,7 +67,7 @@ public static class UpdateChecker
     /// <summary>
     /// 异步检查 GitHub Release 是否比本地版本更新。
     /// </summary>
-    /// <param name="currentVersion">当前本地版本字符串（如 "1.2.0" 或 "v1.2.0"）。允许为 null/空（视为 "0.0.0"）。</param>
+    /// <param name="currentVersion">当前本地版本字符串（如 "1.2.1" 或 "v1.2.1"）。允许为 null/空（视为 "0.0.0"）。</param>
     /// <param name="repoOwner">仓库所有者，默认 <see cref="DefaultRepoOwner"/>。</param>
     /// <param name="repoName">仓库名，默认 <see cref="DefaultRepoName"/>。</param>
     public static async Task<UpdateCheckResult> CheckAsync(
