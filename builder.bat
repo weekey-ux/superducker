@@ -7,7 +7,8 @@ REM   builder.bat                normal publish, no obfuscation
 REM   builder.bat -obfuscate     publish with Obfuscar, install first: dotnet tool install Obfuscar.GlobalTool -g
 REM
 REM Version uses SemVer and is NOT auto-bumped.
-REM Before release, manually increment Version in both csproj files.
+REM Before release, manually increment Version in the three csproj files
+REM (SuperDucker.App / SuperDucker.Cli / SuperDucker.Repo must stay aligned).
 
 set "ROOT=%~dp0"
 set "APP_PROJ=%ROOT%SuperDucker.App\SuperDucker.App.csproj"
