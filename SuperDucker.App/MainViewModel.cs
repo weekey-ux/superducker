@@ -809,6 +809,8 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     /// 列表模式只保留内置"全部"页（搜索靠关键词全局过滤，子分类无意义）；
     /// 网格模式与完整 Tabs 一致。元素引用与 Tabs 共享，操作逻辑不受影响。
     /// </summary>
+    public void RefreshDisplayTabs() => RebuildDisplayTabs();
+
     private void RebuildDisplayTabs()
     {
         DisplayTabs.Clear();

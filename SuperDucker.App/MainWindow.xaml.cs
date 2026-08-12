@@ -778,6 +778,7 @@ public partial class MainWindow : Window
         if (newIdx >= VM.Tabs.Count) newIdx = VM.Tabs.Count - 1;
 
         VM.Tabs.Move(sourceIdx, newIdx);
+        VM.RefreshDisplayTabs();
         SaveTabOrder();
     }
 
