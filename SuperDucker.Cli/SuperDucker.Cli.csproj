@@ -10,7 +10,7 @@
     <_EnableBuiltInCom>true</_EnableBuiltInCom>
 
     <!-- 发行版本号：与 SuperDucker.App 保持一致（语义化版本）。 -->
-    <Version>1.2.3</Version>
+    <Version>1.2.4</Version>
 
     <!-- 许可证：MIT（最宽松的开源许可证之一） -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

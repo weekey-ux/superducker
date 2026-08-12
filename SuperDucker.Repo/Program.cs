@@ -62,9 +62,9 @@ Directory.CreateDirectory(iconsWebDir);
 Console.WriteLine($"[Repo] iconsWebDir = {iconsWebDir}");
 
 // 受支持的图标扩展名（小写、带点）。全仓库共用，避免各端点重复内联。
-// 注意：顶级语句中不能声明 static 字段，故此处为顶级局部变量；
-// 需要在 static 本地函数中使用时，请改用 IconExtensionSet（见文件末尾）。
-string[] IconExtensions = { ".png", ".jpg", ".jpeg", ".ico", ".webp", ".svg" };
+// 单一来源为文件末尾的 IconExtensionSet.Items；此处引用同一集合，
+// 避免在顶级变量与静态常量之间重复维护字面量。
+string[] IconExtensions = IconExtensionSet.Items.ToArray();
 
 var port = builder.Configuration.GetValue("Port", 5180);
 
@@ -553,13 +553,12 @@ static bool IsIconExtension(string ext)
 
 static bool HasIcon(string iconsWebDir, string id)
 {
-    return new[] { ".png", ".jpg", ".jpeg", ".ico", ".webp", ".svg" }
-        .Any(ext => File.Exists(Path.Combine(iconsWebDir, id + ext)));
+    return IconExtensionSet.Items.Any(ext => File.Exists(Path.Combine(iconsWebDir, id + ext)));
 }
 
 static string GetIconExt(string iconsWebDir, string id)
 {
-    foreach (var ext in new[] { ".png", ".jpg", ".jpeg", ".ico", ".webp", ".svg" })
+    foreach (var ext in IconExtensionSet.Items)
     {
         if (File.Exists(Path.Combine(iconsWebDir, id + ext)))
             return ext;
@@ -651,7 +650,7 @@ public class ManifestDto
 /// </summary>
 internal static class IconExtensionSet
 {
-    private static readonly HashSet<string> Items = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly IReadOnlyCollection<string> Items = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         ".png", ".jpg", ".jpeg", ".ico", ".webp", ".svg"
     };

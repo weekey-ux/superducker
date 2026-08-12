@@ -1150,6 +1150,10 @@ public class PanelItemViewModel : INotifyPropertyChanged
     public bool IsBuiltIn { get; }
     public bool IsUrl { get; }
 
+    /// <summary>外部程序目标路径不存在（迁移/删除后失效）时为真，UI 将其图标变灰。</summary>
+    public bool IsTargetMissing { get; }
+    public double IconOpacity => IsTargetMissing ? 0.35 : 1.0;
+
     private string _displayName;
     private string _tooltipText;
     private bool _isVisible = true;
@@ -1221,6 +1225,7 @@ public class PanelItemViewModel : INotifyPropertyChanged
         WorkingDirectory = app.WorkingDirectory;
         IsBuiltIn = app.IsBuiltIn;
         IsUrl = false;
+        IsTargetMissing = !app.IsBuiltIn && !string.IsNullOrEmpty(app.TargetPath) && !File.Exists(app.TargetPath);
         _displayName = app.Abbreviation;
         _tooltipText = "";
         Icon = ExtractIcon(app.TargetPath, app.IconPath);
@@ -1256,6 +1261,7 @@ public class PanelItemViewModel : INotifyPropertyChanged
         if (Description != null) parts.Add(Description);
         if (!IsUrl && TargetPath != null) parts.Add(TargetPath);
         if (IsUrl && Url != null) parts.Add(Url);
+        if (IsTargetMissing) parts.Add("⚠ 目标程序不存在，请重新指定或删除");
         parts.Add($"[{TypeLabel}]");
         TooltipText = string.Join("\n", parts);
     }

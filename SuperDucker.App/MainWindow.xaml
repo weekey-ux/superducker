@@ -126,6 +126,7 @@
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" HorizontalAlignment="Center">
                         <Image Source="{Binding Icon}" Width="42" Height="42"
+                               Opacity="{Binding IconOpacity}"
                                RenderOptions.BitmapScalingMode="HighQuality"/>
                         <Ellipse Width="10" Height="10" Fill="{Binding StatusBrush}"
                                  HorizontalAlignment="Right" VerticalAlignment="Bottom"
@@ -155,6 +156,7 @@
                 </Grid.ColumnDefinitions>
                 <Grid Grid.Column="0" VerticalAlignment="Center">
                     <Image Source="{Binding Icon}" Width="22" Height="22"
+                           Opacity="{Binding IconOpacity}"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                     <Ellipse Width="9" Height="9" Fill="{Binding StatusBrush}"
                              HorizontalAlignment="Right" VerticalAlignment="Bottom"

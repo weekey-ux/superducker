@@ -46,6 +46,8 @@ public static class VersionHelper
             // 任何反射异常都吞掉，避免 UI 加载版本时崩溃
         }
 
-        return "1.2.2";
+        // 兜底：极少走到这里（正常都有有效的程序集版本），用当前发布版本的协调值。
+        // 注意：须与三个 csproj 的 <Version> 保持同步。
+        return "1.2.4";
     }
 }

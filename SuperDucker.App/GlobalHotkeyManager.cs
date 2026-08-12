@@ -12,6 +12,10 @@ public sealed class GlobalHotkeyManager : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
 
+    // 自定义窗口消息：外部进程（如 sd.exe 的 pack-gui）请求主面板打开打包窗口。
+    // 该值须与 App.xaml.cs / SuperDucker.Cli 中定义的 WM_OPEN_PACK 保持一致。
+    public const int WM_OPEN_PACK = 0x0401;
+
     // 修饰键标志（必须与 Win32 常量值一致）
     public const int MOD_ALT = 0x0001;
     public const int MOD_CONTROL = 0x0002;
@@ -229,6 +233,12 @@ public sealed class GlobalHotkeyManager : IDisposable
                     handled = true;
                     break;
             }
+        }
+        else if (msg == WM_OPEN_PACK)
+        {
+            // 外部进程（sd pack-gui）通过 PostMessage 请求打开打包窗口
+            OpenPackRequested?.Invoke();
+            handled = true;
         }
         return IntPtr.Zero;
     }

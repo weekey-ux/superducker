@@ -57,15 +57,16 @@ if errorlevel 1 goto :fail
 REM ---- Step 3: publish (single-file, self-contained) to publish\, replacing old ----
 echo.
 echo [Publish] superducker.exe -^> publish\app
-dotnet publish "%APP_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true %OBF_FLAG% -o "%PUB_APP%"
+dotnet publish "%APP_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=false %OBF_FLAG% -o "%PUB_APP%"
 if errorlevel 1 goto :fail
 
 echo [Publish] sd.exe -^> publish\cli
-dotnet publish "%CLI_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true %OBF_FLAG% -o "%PUB_CLI%"
+dotnet publish "%CLI_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=false %OBF_FLAG% -o "%PUB_CLI%"
 if errorlevel 1 goto :fail
 
 echo [Publish] superducker-repo.exe -^> publish\repo
-dotnet publish "%REPO_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true %OBF_FLAG% -o "%PUB_REPO%"
+REM Repo is a pure ASP.NET Core service; it has no Obfuscar.xml, so we skip obfuscation.
+dotnet publish "%REPO_PROJ%" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=false -o "%PUB_REPO%"
 if errorlevel 1 goto :fail
 
 echo.

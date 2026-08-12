@@ -1,6 +1,6 @@
 # SuperDucker（超级潜水员）
 
-> 绿色软件启动器 · 版本 **1.2.3**
+> 绿色软件启动器 · 版本 **1.2.4**
 
 SuperDucker（中文名「超级潜水员」）是一款 Windows 平台下的**便携式（绿色）软件快速启动器**。
 它借鉴 macOS Spotlight / Alfred 的理念：通过简短的**缩写** + `Win+R`，瞬间启动你常用的程序或网址。
@@ -50,8 +50,8 @@ SuperDucker/
 │   │   ├── RescanHelper.cs         # 目录扫描恢复注册
 │   │   ├── IconHelper.cs           # 图标提取与缓存
 │   │   └── PackageSource.cs        # 软件源抽象（本地 LocalShop + 局域网 Repo）
-│   ├── Models/                     # AppEntry / UrlEntry / PackItem / ShopItem / ShopPackage…
-│  ├── Native/                     # Win32 封装：WindowHelper / PowerManager（资源管理器图标、电源管理）
+│   ├── Models/                     # AppEntry / UrlEntry / TabEntry / ShopPackage / PackageManifest…
+│  ├── Native/                     # Win32 封装：PowerManager / RecycleBinHelper（电源管理、回收站交互）
 │
 ├── SuperDucker.Cli/        # 命令行工具（sd.exe）
 │   └── Program.cs                  # 命令行入口，提供 add/list/pack/import 等子命令
@@ -154,9 +154,11 @@ dotnet publish SuperDucker.Repo/SuperDucker.Repo.csproj -c Release -r win-x64 --
 仓库根目录的 `builder.bat` 可一键完成「构建 + 单文件自包含发布到 `publish/`」：
 
 ```powershell
-builder.bat                # 普通发布（默认，不混淆）
-builder.bat -obfuscate     # 发布并启用 Obfuscar 混淆（先安装工具：dotnet tool install Obfuscar.GlobalTool -g）
+.\builder.bat                # 普通发布（默认，不混淆）
+.\builder.bat -obfuscate     # 发布并启用 Obfuscar 混淆（先安装工具：dotnet tool install Obfuscar.GlobalTool -g）
 ```
+
+> 在 **PowerShell** 中需加 `.\` 前缀（如 `.\builder.bat`），否则会报“不是内部或外部命令”。另外 `builder.bat` 内不要写中文注释——`cmd.exe` 解析含非 ASCII 字符的行会破坏行缓冲导致脚本报错，需要中文说明请放本文件。
 
 ### 可选的代码混淆
 
@@ -181,6 +183,7 @@ dotnet publish SuperDucker.Cli/SuperDucker.Cli.csproj -c Release -r win-x64 --se
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.2.4 | 2026-08-12 | 发行前全方位代码检查与改造：① 修复 `VersionHelper` 版本回退字符串（原写死 "1.2.2"）与 csproj `<Version>` 不一致的问题，统一协调为当前版本；② 删除未使用的 `ThemePreset.ToArgbHex` 死代码；③ 重构 `IconHelper`：抽出共享的 `TryExtractHIcon` 辅助方法，消除 `ExtractAndSaveIcon` 与 `ExtractToBitmapSource` 间重复的图标尺寸循环与 Win32 调用；④ 统一 `SuperDucker.Repo` 图标扩展名单一来源——`IconExtensions` 顶层数组与 `HasIcon`/`GetIconExt` 内联数组均复用 `IconExtensionSet.Items`，消除第三处字面量重复；⑤ 外部资源复核：`wwwroot/index.html` 管理页纯本地 CSS/JS、零 CDN 依赖，满足本地化部署；⑥ 版本号统一升至 1.2.4（App/Cli/Repo csproj + VersionHelper 回退值）。 |
 | 1.2.3 | 2026-08-11 | 列表显示模式交互全面优化：① 列表模式仅保留「全部」页，隐藏分类子页签（关键词全局检索为核心），并隐藏 Tab 条让界面更干净；② 美化滚动条（圆角主题色半透明 thumb），禁用列表横向滚动条让超长描述自动截断；③ 过滤后仅剩唯一项时按回车直接启动该项，启动遵循「运行后自动隐藏」等设置；④ 列表项单击/双击严格匹配设置中的单击/双击规则与自动隐藏；⑤ 从列表切回网格时按「隐藏全部 Tab」设置正确增删该页；⑥ 列表模式下通过快捷键/托盘图标/单实例激活唤出窗口时自动聚焦关键词输入框；⑦ 修复切回网格模式后图标因过滤状态残留而被隐藏的问题。版本号统一升至 1.2.3。 |
 | 1.2.2 | 2026-08-11 | 热修复 1.2.1 的图标显示回归：回滚导致主面板图标不可见的 `CenteredWrapPanel`，恢复标准 `WrapPanel`，确保图标正常显示。窗口大小持久化功能保留。 |
 | 1.2.1 | 2026-08-11 | 修复窗口体验问题：① 重启后自动恢复上次窗口尺寸（与位置模式解耦，居中/跟随鼠标模式下也会恢复用户调整过的大小）。 |

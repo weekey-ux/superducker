@@ -24,8 +24,14 @@ public partial class App : Application
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
     // ShowWindow 的还原常量：将最小化窗口恢复为之前的大小和位置
     private const int SW_RESTORE = 9;
+
+    // 与 GlobalHotkeyManager.WM_OPEN_PACK 保持一致：请求已运行实例打开打包窗口
+    private const int WM_OPEN_PACK = 0x0401;
 
     public App()
     {
@@ -38,26 +44,30 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // --pack 模式作为独立实例运行（不受单实例限制，便于单独打包启动项）
+        // --pack 不再是独立实例：它只是「请求打开打包窗口」的语义。
+        // 若已有主面板在运行，则通过 WM_OPEN_PACK 通知它打开，自己立即退出；
+        // 若没有，则正常成为唯一实例，并在启动后自动打开打包窗口。
         bool packMode = e.Args.Any(a => a.Equals("--pack", StringComparison.OrdinalIgnoreCase));
 
-        if (!packMode)
-        {
-            // 创建命名互斥体，确保同一时间只有一个 SuperDucker 主程序运行
-            _mutex = new Mutex(true, MutexName, out bool createdNew);
+        // 创建命名互斥体，确保同一时间只有一个 SuperDucker 主程序运行
+        _mutex = new Mutex(true, MutexName, out bool createdNew);
 
-            if (!createdNew)
+        if (!createdNew)
+        {
+            // Another instance is running — activate its window and exit
+            var hwnd = FindWindow(null, "SuperDucker");
+            if (hwnd != IntPtr.Zero)
             {
-                // Another instance is running — activate its window and exit
-                var hwnd = FindWindow(null, "SuperDucker");
-                if (hwnd != IntPtr.Zero)
+                ShowWindow(hwnd, SW_RESTORE);
+                SetForegroundWindow(hwnd);
+                if (packMode)
                 {
-                    ShowWindow(hwnd, SW_RESTORE);
-                    SetForegroundWindow(hwnd);
+                    // 请求已运行实例打开打包窗口，而非另起进程
+                    PostMessage(hwnd, WM_OPEN_PACK, IntPtr.Zero, IntPtr.Zero);
                 }
-                Shutdown();
-                return;
             }
+            Shutdown();
+            return;
         }
 
         base.OnStartup(e);
@@ -71,27 +81,8 @@ public partial class App : Application
 
     private void Application_Startup(object sender, StartupEventArgs e)
     {
-        bool packMode = e.Args.Any(a => a.Equals("--pack", StringComparison.OrdinalIgnoreCase));
-
-        if (packMode)
-        {
-            // Standalone pack dialog mode - show main window first so we can set owner
-            var packMainWindow = new MainWindow();
-            packMainWindow.Show();
-
-            DatabaseManager? db = null;
-            try { db = new DatabaseManager(DatabaseManager.GetDefaultDbPath()); }
-            catch { }
-
-            var packDialog = new PackDialog(db);
-            packDialog.Owner = packMainWindow; // Set owner for UI refresh capability
-            packDialog.ShowDialog();
-
-            db?.Dispose();
-            packMainWindow.Close();
-            Shutdown();
-            return;
-        }
+        // --pack 现在是唯一实例的普通启动，只是额外在窗口加载后打开打包窗口。
+        // 判断交给 MainWindow（读取命令行 --pack），这里统一走主窗口创建流程。
 
         // Show window first for fast perceived startup
         var mainWindow = new MainWindow();

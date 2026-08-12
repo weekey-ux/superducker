@@ -114,6 +114,4 @@ public static class ColorHelper
             return Colors.Black;
         }
     }
-
-    public static string ToArgbHex(Color c) => $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
 }

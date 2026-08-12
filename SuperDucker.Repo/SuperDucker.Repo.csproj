@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>SuperDucker.Repo</RootNamespace>
     <AssemblyName>superducker-repo</AssemblyName>
-    <Version>1.2.3</Version>
+    <Version>1.2.4</Version>
   </PropertyGroup>
 
   <!-- Release publish: 与 superducker.exe / sd.exe 一致，自包含单文件 + 预编译(R2R) + 压缩 -->

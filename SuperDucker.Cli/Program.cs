@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using SuperDucker.Shared;
@@ -1177,16 +1178,68 @@ class Program
     // ═══════════════════════════════════════════
     //  sd pack-gui (launch GUI pack dialog)
     // ═══════════════════════════════════════════
+    /// <summary>
+    /// 解析面板程序 superducker.exe 的路径。
+    /// 发布目录结构为 publish/{cli,app,repo}，CLI 在 cli/ 而面板在 app/，
+    /// 因此优先自身目录，其次 ../app，最后回退到 PATH 查找。
+    /// </summary>
+    static string? ResolvePanelExe()
+    {
+        var candidates = new List<string>
+        {
+            Path.Combine(AppContext.BaseDirectory, "superducker.exe"),
+            Path.Combine(AppContext.BaseDirectory, "..", "app", "superducker.exe")
+        };
+        foreach (var c in candidates)
+        {
+            var full = Path.GetFullPath(c);
+            if (File.Exists(full)) return full;
+        }
+
+        // 回退：在 PATH 中查找
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+        {
+            try
+            {
+                var p = Path.Combine(dir, "superducker.exe");
+                if (File.Exists(p)) return p;
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    // 与 App.xaml.cs / GlobalHotkeyManager 中 WM_OPEN_PACK 保持一致
+    private const int WM_OPEN_PACK = 0x0401;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>
+    /// 打开打包窗口。优先请求已运行的面板实例（避免重复进程），
+    /// 仅在面板尚未运行时才启动唯一实例。
+    /// </summary>
     static int HandlePackGui()
     {
-        var rootDir = AppContext.BaseDirectory;
-        var panelExe = Path.Combine(rootDir, "superducker.exe");
+        // 1) 若面板已在运行，直接通知它打开打包窗口（不另起进程）
+        var hwnd = FindWindow(null, "SuperDucker");
+        if (hwnd != IntPtr.Zero)
+        {
+            PostMessage(hwnd, WM_OPEN_PACK, IntPtr.Zero, IntPtr.Zero);
+            Console.WriteLine("[OK] 已请求面板打开打包工具");
+            return 0;
+        }
 
-        if (!File.Exists(panelExe))
+        // 2) 否则启动唯一面板实例并带 --pack（由主面板自动打开打包窗口）
+        var panelExe = ResolvePanelExe();
+        if (panelExe == null)
         {
             Console.Error.WriteLine($"错误: 找不到 superducker.exe");
-            Console.Error.WriteLine($"      期望路径: {panelExe}");
-            Console.Error.WriteLine($"      请确保 sd.exe 和 superducker.exe 在同一目录。");
+            Console.Error.WriteLine($"      已搜索: {AppContext.BaseDirectory} 及 ..\\app\\");
+            Console.Error.WriteLine($"      请确保 sd.exe 与 superducker.exe 均已正确发布。");
             return 1;
         }
 
@@ -1287,8 +1340,8 @@ class Program
         }
 
         // Create superducker.lnk for the panel
-        var panelExePath = Path.Combine(rootDir, "superducker.exe");
-        if (File.Exists(panelExePath))
+        var panelExePath = ResolvePanelExe();
+        if (panelExePath != null)
         {
             var panelLnkPath = Path.Combine(DatabaseManager.GetLinkDirectory(), "superducker.lnk");
             ShortcutManager.CreateRawShortcut(panelExePath, panelLnkPath, "SuperDucker Panel");

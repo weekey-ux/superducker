@@ -1,6 +1,9 @@
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows;
+using SuperDucker.Shared.Data;
+using SuperDucker.Shared.Helpers;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -92,6 +95,12 @@ public partial class MainWindow : Window
         ApplyWindowPosition();
         RebuildContent();
         ApplyTheme();
+
+        // 若以 --pack 启动（无已运行实例时的唯一实例），自动打开打包窗口
+        if (Environment.GetCommandLineArgs().Any(a => a.Equals("--pack", StringComparison.OrdinalIgnoreCase)))
+        {
+            OnOpenPack();
+        }
 
         // Wire up IsVisibleChanged / Activated after window is fully loaded
         IsVisibleChanged += Window_IsVisibleChanged;
@@ -865,17 +874,45 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private static readonly HashSet<string> DroppableExts = new() { ".exe", ".bat", ".cmd", ".lnk" };
+
     private void Content_DragOver(object sender, DragEventArgs e)
     {
         if (e.Data.GetDataPresent(typeof(PanelItemViewModel)))
         {
             e.Effects = DragDropEffects.Move;
             e.Handled = true;
+            return;
         }
+
+        // 文件管理器拖入可执行文件：仅接受白名单扩展名
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
+            if (files != null && files.Any(IsDroppableExecutable))
+            {
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = true;
+                return;
+            }
+        }
+        e.Effects = DragDropEffects.None;
     }
 
     private void Content_Drop(object sender, DragEventArgs e)
     {
+        // 文件管理器拖入：解析后弹 AddDialog 预填
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
+            if (files != null && files.Any(IsDroppableExecutable))
+            {
+                e.Handled = true;
+                Content_FileDrop(files);
+                return;
+            }
+        }
+
         if (!e.Data.GetDataPresent(typeof(PanelItemViewModel))) return;
         var draggedItem = e.Data.GetData(typeof(PanelItemViewModel)) as PanelItemViewModel;
         if (draggedItem == null) return;
@@ -891,6 +928,39 @@ public partial class MainWindow : Window
         }
 
         VM.ReorderItems(draggedItem, targetItem);
+    }
+
+    private static bool IsDroppableExecutable(string path)
+    {
+        var ext = Path.GetExtension(path);
+        return !string.IsNullOrEmpty(ext) && DroppableExts.Contains(ext, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 处理从文件管理器拖入的 .exe/.bat/.cmd/.lnk：解析目标后弹出 AddDialog 预填确认。
+    /// </summary>
+    private void Content_FileDrop(string[] files)
+    {
+        foreach (var raw in files.Where(IsDroppableExecutable))
+        {
+            // .lnk 解析为真实目标路径；其余直接用原路径
+            var resolved = Path.GetExtension(raw).Equals(".lnk", StringComparison.OrdinalIgnoreCase)
+                ? (ShortcutManager.ReadShortcutTarget(raw) ?? raw)
+                : raw;
+
+            var friendlyName = Path.GetFileNameWithoutExtension(raw);
+            var abbr = AbbreviationGenerator.Generate(friendlyName);
+
+            var dialog = new AddDialog(AddDialog.DialogMode.App)
+            {
+                TxtTargetPath = { Text = resolved },
+                TxtAbbreviation = { Text = abbr },
+                TxtFriendlyName = { Text = friendlyName }
+            };
+
+            if (dialog.ShowDialog() == true)
+                VM.AddAppEntry(dialog.Abbreviation, dialog.TargetPath, dialog.FriendlyName, dialog.Description, dialog.Category);
+        }
     }
 
     private static PanelItemViewModel? FindItemAtPosition(ItemsControl itemsControl, Point position)
