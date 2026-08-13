@@ -11,6 +11,9 @@ publish/
 ## 发行压缩包目录（Release 附件存放，不纳入源码）
 builder/
 
+## 发布用文案（论坛介绍等，非源码，不纳入仓库）
+SuperDucker_介绍.md
+
 ## 运行时数据（用户数据，不纳入源码）
 SuperDucker.Shared/bin/
 SuperDucker.Shared/obj/
